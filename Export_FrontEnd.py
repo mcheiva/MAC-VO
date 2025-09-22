@@ -1,16 +1,12 @@
 import torch
-import torch_tensorrt as trt
 from Module.Network import FlowFormerCov
 from Module.Network.FlowFormer.configs.submission import get_cfg
 from Module.Network.FlowFormerCov import build_flowformer
     
-if __name__ == "__main__":
-    from Module.Network.FlowFormer.configs.submission import get_cfg
-    from Module.Network.FlowFormerCov import build_flowformer
-        
+if __name__ == "__main__":        
     cfg = get_cfg()
     cfg.latentcostformer.decoder_depth = 12
-    model = build_flowformer(cfg, torch.float16, torch.bfloat16)
+    model = build_flowformer(cfg, torch.float32, torch.float32)
     device = torch.device("cuda")
 
     ckpt  = torch.load("./Model/MACVO_FrontendCov.pth", map_location=device, weights_only=True)
