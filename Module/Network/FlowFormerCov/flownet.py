@@ -18,17 +18,27 @@ class FlowFormerCov(FlowFormer):
     def forward(self, image1, image2):
         image1 = ((2 * image1) - 1.0).to(dtype=self.enc_dtype)
         image2 = ((2 * image2) - 1.0).to(dtype=self.enc_dtype)
+        # if not torch.compiler.is_compiling():
+        #     torch.cuda.nvtx.range_push("Context Encoder")
+        context = self.context_encoder(image1)
+        #if not torch.compiler.is_compiling():
+        #    torch.cuda.nvtx.range_pop()
 
-        with torch.cuda.nvtx.range("Context Encoder"):
-            context = self.context_encoder(image1)
+        #if not torch.compiler.is_compiling():
+        #    torch.cuda.nvtx.range_push("Memory Encoder")
+        cost_memory, cost_maps = self.memory_encoder(image1, image2, context)
+        cost_maps = cost_maps.float()
+        context   = context.float()
 
-        with torch.cuda.nvtx.range("Memory Encoder"):
-            cost_memory, cost_maps = self.memory_encoder(image1, image2, context)
-            cost_maps = cost_maps.float()
-            context   = context.float()
+        #if not torch.compiler.is_compiling():
+        #    torch.cuda.nvtx.range_pop()
 
-        with torch.cuda.nvtx.range("Memory Decoder"):
-            flow_predictions, cov_predictions = self.memory_decoder(cost_memory, context, cost_maps)
+        #if not torch.compiler.is_compiling():
+        #    torch.cuda.nvtx.range_push("Memory Decoder")
+        flow_predictions, cov_predictions = self.memory_decoder(cost_memory, context, cost_maps)
+
+        #if not torch.compiler.is_compiling():
+        #    torch.cuda.nvtx.range_pop()
 
         return flow_predictions, cov_predictions
     
@@ -38,9 +48,9 @@ class FlowFormerCov(FlowFormer):
         padder = InputPadder(image1.shape)
         image1, image2    = padder.pad(image1, image2)
         flow_pre, cov_pre = self.forward(image1, image2)
-
         flow_pre = padder.unpad(flow_pre[0])
         cov_pre = padder.unpad(cov_pre[0])
+        
         return flow_pre, torch.exp(cov_pre * 2)
 
     def load_ddp_state_dict(self, ckpt: OrderedDict):
