@@ -14,12 +14,6 @@ if __name__ == "__main__":
     model.eval()
     model.to(device)
     model.load_ddp_state_dict(ckpt)
-
-    torch.backends.cuda.matmul.allow_tf32 = True    # Allow tensor cores
-    torch.backends.cudnn.allow_tf32 = True          # Allow tensor cores
-    torch.set_float32_matmul_precision("medium")    # Reduced precision for higher throughput
-    torch.backends.cuda.preferred_linalg_library = "cusolver"   # For faster linalg ops
-    
     
     H = W = 704
     batch_size = 2  # Use 2 for export, but allow dynamic batch
