@@ -36,20 +36,26 @@ class CovUpdateBlock(nn.Module):
             nn.Conv2d(256, 64 * 9, 1, padding=0),
         )
 
-    def forward(self, covs_net, inp_cat):
-        covs_net = self.gru(covs_net, inp_cat)
+    def forward_state(self, covs_net, inp_cat):
+        covs_net   = self.gru(covs_net, inp_cat)
         delta_covs = self.cov_head(covs_net)
-        mask = 0.25 * self.mask(covs_net)
-        return covs_net, delta_covs, mask
+        return covs_net, delta_covs
+
+    def forward_mask(self, covs_net):
+        return 0.25 * self.mask(covs_net)
+
+    def forward(self, covs_net, inp_cat):
+        covs_net, delta_covs = self.forward_state(covs_net, inp_cat)
+        return covs_net, delta_covs, self.forward_mask(covs_net)
 
 
 class MemoryCovDecoder(MemoryDecoder):
     def __init__(self, cfg, decoder_dtype: torch.dtype):
         super(MemoryCovDecoder, self).__init__(cfg)
         self.cov_update = CovUpdateBlock(self.cfg, hidden_dim=128)
-        
+
         self.decoder_dtype = decoder_dtype
-        
+
         self.delta              = self.delta.to(dtype=self.decoder_dtype)
         self.att                = self.att.to(dtype=self.decoder_dtype)
         self.decoder_layer      = self.decoder_layer.to(dtype=self.decoder_dtype)
@@ -63,10 +69,10 @@ class MemoryCovDecoder(MemoryDecoder):
         context: [B, D, H1, W1]
         """
         cost_memory = cost_memory.to(dtype=self.decoder_dtype)
-        
-        flow_coords0, flow_coords1 = initialize_flow(context)        
+
+        flow_coords0, flow_coords1 = initialize_flow(context)
         cov_coords0 , cov_coords1  = flow_coords0, flow_coords1.clone()
-        
+
         flow_predictions = []
         cov_predictions = []
 
@@ -75,65 +81,63 @@ class MemoryCovDecoder(MemoryDecoder):
         flow_net = flow_net.tanh().to(dtype=self.decoder_dtype)
         fcov_net = flow_net.clone().to(dtype=self.decoder_dtype)
         flow_inp = flow_inp.relu()
-        
+
         flow_inp  = flow_inp.to(dtype=self.decoder_dtype)
         attention = self.att(flow_inp)
 
         size = flow_net.shape
         key, value = None, None
 
-        for _ in range(self.depth):
+        for i in range(self.depth):
+            # Only the last iteration's upsampled flow / cov are returned in
+            # eval mode (see the `else` branch below). Compute mask + upsample
+            # only for that iteration; state-propagation ops (gru, flow_head,
+            # cov_head, coord updates) still run every iteration unchanged.
+            needs_upsample = self.training or (i == self.depth - 1)
+
             flow_coords1      = flow_coords1.detach()
             bf16_flow_coords1 = flow_coords1.to(dtype=self.decoder_dtype)
             flow              = (flow_coords1 - flow_coords0).to(dtype=self.decoder_dtype)
-            
-            #with torch.cuda.nvtx.range("Encode Flow Token"):
-                # NOTE: This module MUST run in fp32 precision
+
             cost_forward = self.encode_flow_token(cost_maps, flow_coords1)
             cost_forward = cost_forward.to(dtype=self.decoder_dtype)
 
-            #with torch.cuda.nvtx.range("CNN Encoder"):
             query = self.flow_token_encoder(cost_forward)
             query = query.permute(0, 2, 3, 1).view(size[0] * size[2] * size[3], 1, self.dim)
-            
-            #with torch.cuda.nvtx.range("Cross Attention"):
+
             cost_global, key, value = self.decoder_layer(
                 query, key, value, cost_memory, bf16_flow_coords1, size, self.cfg.query_latent_dim
             )
             corr = torch.cat([cost_global, cost_forward], dim=1)
 
-            #with torch.cuda.nvtx.range("GMA Update Block"):
             motion_feat        = self.update_block.encoder(flow, corr)
             motion_feat_global = self.update_block.aggregator(attention, motion_feat)
-            
+
             inp_cat = torch.cat([flow_inp, motion_feat, motion_feat_global], dim=1)
 
-            #with torch.cuda.nvtx.range("Flow Update Block"):
-            flow_net    = self.update_block.gru(flow_net, inp_cat)
-            delta_flow  = self.update_block.flow_head(flow_net)
-            up_mask     = self.update_block.mask(flow_net)
-                
-            #ith torch.cuda.nvtx.range("Cov Update Block"):
-            fcov_net, delta_cov, cov_mask = self.cov_update(fcov_net, inp_cat)    
-            
-            #with torch.cuda.nvtx.range("Flow Upsample"):
-            # NOTE: This module MUST run in fp32 precision.
-            delta_flow = delta_flow.to(dtype=torch.float32)
-            up_mask    = 0.25 * up_mask.to(dtype=torch.float32)
-            
-            flow_coords1 = flow_coords1 + delta_flow
-            flow_up      = self.upsample_flow(flow_coords1 - flow_coords0, up_mask)
-            flow_predictions.append(flow_up)
-            
-            #with torch.cuda.nvtx.range("Cov Upsample"):
-            # NOTE: This module MUST run in fp32 precision.
-            delta_cov = delta_cov.to(dtype=torch.float32)
-            cov_mask  = cov_mask.to(dtype=torch.float32) 
-            
-            cov_coords1 = cov_coords1 + delta_cov
-            cov_up = self.upsample_flow(cov_coords1 - cov_coords0, cov_mask)
-            cov_predictions.append(cov_up)
-            
+            flow_net   = self.update_block.gru(flow_net, inp_cat)
+            delta_flow = self.update_block.flow_head(flow_net)
+
+            fcov_net, delta_cov = self.cov_update.forward_state(fcov_net, inp_cat)
+
+            # State propagation must happen every iteration so the next iter
+            # consumes the updated coords (matches the original code).
+            delta_flow_fp32 = delta_flow.to(dtype=torch.float32)
+            flow_coords1    = flow_coords1 + delta_flow_fp32
+
+            delta_cov_fp32 = delta_cov.to(dtype=torch.float32)
+            cov_coords1    = cov_coords1 + delta_cov_fp32
+
+            if needs_upsample:
+                up_mask = self.update_block.mask(flow_net)
+                up_mask = 0.25 * up_mask.to(dtype=torch.float32)
+                flow_up = self.upsample_flow(flow_coords1 - flow_coords0, up_mask)
+                flow_predictions.append(flow_up)
+
+                cov_mask = self.cov_update.forward_mask(fcov_net).to(dtype=torch.float32)
+                cov_up   = self.upsample_flow(cov_coords1 - cov_coords0, cov_mask)
+                cov_predictions.append(cov_up)
+
         if self.training:
             return flow_predictions, cov_predictions
         else:

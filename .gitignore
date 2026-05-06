@@ -46,3 +46,22 @@ SLURM.sh
 !**/__init__.pyi
 !**/__main__.py
 !**/__main__.pyi
+
+# TensorRT / ONNX build artefacts (regenerated locally by Export.py + the
+# TRT builder). Large binaries that should never be committed.
+*.plan
+*.onnx
+*.onnx.data
+*.npy
+*.bak
+*.sarif
+
+# C++ TRT builder out-of-source build dirs (Conan + CMake).
+MACVO_TRT_BuildCpp/build/
+MACVO_TRT_BuildCpp/CMakeUserPresets.json
+MACVO_TRT_BuildCpp/CMakeCache.txt
+MACVO_TRT_BuildCpp/CMakeFiles/
+MACVO_TRT_BuildCpp/Testing/
+
+# Loose data folders / scratch
+data/
