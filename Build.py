@@ -13,6 +13,35 @@ Modes:
 
 Both modes use builderOptimizationLevel=1: per MAC-VO issue #18, higher levels
 do fusions tuned for [0,1] logits and corrupt optical-flow values.
+
+Equivalent trtexec invocations (commented out -- only use these if your
+DEPLOYMENT runtime ships the same TRT major.minor as your local trtexec.exe;
+otherwise loading the plan will fail with
+  "Serialization assertion stdVersionRead == kSERIALIZATION_VERSION failed.
+   Version tag does not match. Note: Current Version: 240,
+   Serialized Engine Version: 239"
+The Python `tensorrt` package on this box is 10.7 (serialization v239) but
+trtexec.exe in CUDA v12.4 bin is 10.13 (v240) -- they are incompatible. Use
+this Python builder for plans consumed by the Python runtime, the C++ tool
+in MACVO_TRT_BuildCpp/ for plans consumed by the C++ runtime that links the
+matching TRT, and trtexec only when versions are guaranteed to match.
+
+# fast (FP16 deployment plan):
+# trtexec --onnx=MACVO_FrontendCov.onnx --saveEngine=MACVO_FrontendCov.plan ^
+#   --fp16 --builderOptimizationLevel=1 --precisionConstraints=obey ^
+#   --layerPrecisions=/Mul:fp32,/Exp:fp32 ^
+#   --layerOutputTypes=/Mul:fp32,/Exp:fp32 ^
+#   --outputIOFormats=fp32:chw,fp32:chw ^
+#   --minShapes=image_1:1x3x704x704,image_2:1x3x704x704 ^
+#   --optShapes=image_1:2x3x704x704,image_2:2x3x704x704 ^
+#   --maxShapes=image_1:2x3x704x704,image_2:2x3x704x704
+#
+# precise (FP32 reference plan, batch=1, TF32 off):
+# trtexec --onnx=MACVO_FrontendCov.onnx --saveEngine=MACVO_FrontendCov_fp32.plan ^
+#   --noTF32 --builderOptimizationLevel=1 ^
+#   --minShapes=image_1:1x3x704x704,image_2:1x3x704x704 ^
+#   --optShapes=image_1:1x3x704x704,image_2:1x3x704x704 ^
+#   --maxShapes=image_1:1x3x704x704,image_2:1x3x704x704
 """
 import argparse
 import sys
