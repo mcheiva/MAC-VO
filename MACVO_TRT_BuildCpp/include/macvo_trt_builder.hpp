@@ -44,15 +44,25 @@ struct BuildOptions {
     // tuned for [0,1] logits and corrupt optical-flow values.
     int optimization_level = 1;
 
-    // ONNX layer names of the cov-branch tail. exp() over these must run in
-    // fp32 to avoid fp16 saturation; the Python builder pins the same set.
-    // Post onnx-simplifier the chain is just (cov_up * 2.0) -> exp(...), so
-    // pinning /Mul and /Exp covers the whole fp32 island. If the wrapper or
-    // simplifier is changed, run MACVO_TRT_Inspect.py to refresh these.
-    std::vector<std::string> fp32_layer_names = {
-        "/Mul",
-        "/Exp",
-    };
+    // Page weights from CPU at runtime. Reduces peak VRAM, allowing fp32
+    // batch=2 to fit on 8 GB GPUs. Also the critical flag for `fast` mode
+    // -- without it the trajectory regresses ~14% APE on plane_nose.
+    bool weight_streaming = true;
+
+    // Allow TF32 in fp32 matmul kernels. Default true for fast (no fp32
+    // ops to TF32-ize), default false for precise (TF32 truncates the
+    // mantissa to 10 bits, breaking parity with PyTorch allow_tf32=False).
+    // The constructor of BuildOptions does not know the mode, so the
+    // caller / CLI applies the mode-specific default before Build().
+    bool allow_tf32 = true;
+
+    // Cov-tail fp32 pin set. Empty by default: the MACVO consumer applies
+    // /255 + exp(2 * cov_raw) itself, so neither lives in the ONNX graph and
+    // there is no fp16 exp() saturation risk to guard. Re-populate (e.g.
+    // {"/Mul", "/Exp"}) only if a future Export.py change moves pre/post
+    // back into the graph; in that case run MACVO_TRT_Inspect.py against the
+    // re-exported ONNX to recover the actual post-onnxsim layer names.
+    std::vector<std::string> fp32_layer_names = {};
 
     std::array<std::string, 2> input_names{ "image_1", "image_2" };
     std::string cov_output_name = "cov";
@@ -98,9 +108,14 @@ inline void Build(const BuildOptions& opts) {
     TrtPtr<nvinfer1::IBuilder> builder{ nvinfer1::createInferBuilder(logger) };
     if (!builder) throw std::runtime_error("createInferBuilder failed");
 
-    // flag=0: legacy network (allows mixed precision via FP16 flag).
-    // Matches Python `builder.create_network(0)`.
-    TrtPtr<nvinfer1::INetworkDefinition> network{ builder->createNetworkV2(0U) };
+    // Always strongly typed: TRT respects the ONNX-baked dtypes literally.
+    // For Mode::Fast (fp16, bf16) ONNX: matches the gold root plan recipe.
+    // For Mode::Precise (fp32, fp32) ONNX: gives full fp32 throughout.
+    // Strongly-typed is incompatible with BuilderFlag::kFP16 /
+    // kOBEY_PRECISION_CONSTRAINTS; do not set those here.
+    const std::uint32_t net_flag = 1U << static_cast<std::uint32_t>(
+        nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
+    TrtPtr<nvinfer1::INetworkDefinition> network{ builder->createNetworkV2(net_flag) };
     if (!network) throw std::runtime_error("createNetworkV2 failed");
 
     TrtPtr<nvonnxparser::IParser> parser{ nvonnxparser::createParser(*network, logger) };
@@ -118,42 +133,19 @@ inline void Build(const BuildOptions& opts) {
     if (!config) throw std::runtime_error("createBuilderConfig failed");
     config->setBuilderOptimizationLevel(opts.optimization_level);
 
-    if (opts.mode == Mode::Fast) {
-        config->setFlag(nvinfer1::BuilderFlag::kFP16);
-        config->setFlag(nvinfer1::BuilderFlag::kOBEY_PRECISION_CONSTRAINTS);
+    if (opts.weight_streaming) {
+        // Pages weights from CPU at runtime. Reduces peak VRAM (allowing
+        // fp32 batch=2 on 8 GB GPUs that would otherwise OOM) and is the
+        // critical flag for Mode::Fast to reproduce the gold root plan
+        // layout -- without it the trajectory regresses ~14% APE.
+        config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
+    }
 
-        const std::set<std::string> fp32_set(
-            opts.fp32_layer_names.begin(), opts.fp32_layer_names.end());
-
-        std::vector<std::string> pinned;
-        const int n_layers = network->getNbLayers();
-        for (int i = 0; i < n_layers; ++i) {
-            auto* layer = network->getLayer(i);
-            const std::string name = layer->getName();
-            if (fp32_set.contains(name)) {
-                layer->setPrecision(nvinfer1::DataType::kFLOAT);
-                const int n_outs = layer->getNbOutputs();
-                for (int o = 0; o < n_outs; ++o) {
-                    layer->setOutputType(o, nvinfer1::DataType::kFLOAT);
-                }
-                pinned.push_back(name);
-            }
-        }
-        std::cerr << "Pinned " << pinned.size() << " tail layers to fp32:";
-        for (const auto& n : pinned) std::cerr << ' ' << n;
-        std::cerr << '\n';
-
-        const int n_outs = network->getNbOutputs();
-        for (int i = 0; i < n_outs; ++i) {
-            auto* out = network->getOutput(i);
-            if (opts.cov_output_name == out->getName()) {
-                out->setType(nvinfer1::DataType::kFLOAT);
-            }
-        }
-    } else {
-        // PyTorch default is allow_tf32=False; match it to upper-bound parity.
+    if (!opts.allow_tf32) {
+        // TF32 truncates fp32 matmul mantissa to 10 bits. Disabling it
+        // matches PyTorch's allow_tf32=False default. Default for
+        // Mode::Precise; harmless for Mode::Fast (no fp32 ops to TF32-ize).
         config->clearFlag(nvinfer1::BuilderFlag::kTF32);
-        // Precise reference plan is batch=1 only on 8 GB cards.
     }
 
     auto* profile = builder->createOptimizationProfile();
