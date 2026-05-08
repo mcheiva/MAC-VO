@@ -7,6 +7,7 @@ from .twins import Block
 from .utils import coords_grid
 from .twins_svt import TwinsSVTLarge
 from .attention import BroadMultiHeadAttention, MultiHeadAttention, LinearPositionEmbeddingSine
+from .pad_helper import pad_constant_zero
 
 
 class PatchEmbed(nn.Module):
@@ -35,7 +36,7 @@ class PatchEmbed(nn.Module):
         pad_l = pad_t = 0
         pad_r = (self.patch_size - W % self.patch_size) % self.patch_size
         pad_b = (self.patch_size - H % self.patch_size) % self.patch_size
-        x = F.pad(x, (pad_l, pad_r, pad_t, pad_b))
+        x = pad_constant_zero(x, (pad_l, pad_r, pad_t, pad_b))
 
         x = self.proj(x)
         out_size = x.shape[2:] 

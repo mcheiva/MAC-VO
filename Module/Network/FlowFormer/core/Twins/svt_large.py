@@ -19,6 +19,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ..pad_helper import pad_constant_zero
+
 # from timm.models._builder import build_model_with_cfg
 
 def build_model_with_cfg(
@@ -94,7 +96,7 @@ class LocallyGroupedAttn(nn.Module):
         pad_l = pad_t = 0
         pad_r = (self.ws - W % self.ws) % self.ws
         pad_b = (self.ws - H % self.ws) % self.ws
-        x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        x = pad_constant_zero(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         _, Hp, Wp, _ = x.shape
         _h, _w = Hp // self.ws, Wp // self.ws
         x = x.reshape(B, _h, self.ws, _w, self.ws, C).transpose(2, 3)

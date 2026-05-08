@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from .utils import coords_grid, bilinear_sampler
 from .attention import MultiHeadAttention, LinearPositionEmbeddingSine
+from .pad_helper import pad_constant_zero
 
 
 from .gru import GMAUpdateBlock
@@ -133,7 +134,8 @@ class MemoryDecoder(nn.Module):
         N, C, H, W = flow.shape
         
         mask = mask.view(N, 9, 8, 8, H, W).softmax(dim=1)
-        up_flow = F.unfold(8 * flow, (3, 3), padding=1).view(N, C, 9, H, W)
+        flow_padded = pad_constant_zero(8 * flow, (1, 1, 1, 1))
+        up_flow = F.unfold(flow_padded, (3, 3), padding=0).view(N, C, 9, H, W)
         weighted = (mask.unsqueeze(1) * up_flow.unsqueeze(-3).unsqueeze(-3)).sum(dim=2)
         
         return weighted.permute(0, 1, 4, 2, 5, 3).reshape(N, C, 8 * H, 8 * W)

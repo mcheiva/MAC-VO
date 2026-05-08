@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from .attention import LinearPositionEmbeddingSine
 from .utils import coords_grid
 from .Twins.svt_large import Mlp
+from .pad_helper import pad_constant_zero
 
 
 
@@ -62,8 +63,8 @@ class LocallyGroupedAttnRPEContext(nn.Module):
         pad_l = pad_t = 0
         pad_r = (self.ws - W % self.ws) % self.ws
         pad_b = (self.ws - H % self.ws) % self.ws
-        x     = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
-        x_qk  = F.pad(x_qk, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        x     = pad_constant_zero(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        x_qk  = pad_constant_zero(x_qk, (0, 0, pad_l, pad_r, pad_t, pad_b))
 
         _, Hp, Wp, _ = x.shape
         _h, _w = Hp // self.ws, Wp // self.ws
@@ -159,8 +160,8 @@ class GlobalSubSampleAttnRPEContext(nn.Module):
         pad_l = pad_t = 0
         pad_r = (self.sr_ratio - W % self.sr_ratio) % self.sr_ratio
         pad_b = (self.sr_ratio - H % self.sr_ratio) % self.sr_ratio
-        x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
-        x_qk = F.pad(x_qk, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        x = pad_constant_zero(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        x_qk = pad_constant_zero(x_qk, (0, 0, pad_l, pad_r, pad_t, pad_b))
         
         _, Hp, Wp, _ = x.shape
         padded_size = (Hp, Wp)
