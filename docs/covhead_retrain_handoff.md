@@ -132,10 +132,11 @@ Keep as is: additive accumulation across iterations, γ weighting, per-iteration
 
 ## 6. Trainer changes
 
-- `train_flowformer.py` as shipped fails when it builds the DataLoader: `ConcatDataset` rejects
-  `SequenceBase`, which is an `IterableDataset`. Wrap each `TrainDataset` in a map-style
-  adapter (`__len__`, `__getitem__`). It also drops sequences that fail to load without error
-  (`if ds is not None`), so log the count of sequences that loaded.
+- `train_flowformer.py` as shipped (and upstream `main`) could not run: `ConcatDataset` rejected
+  `SequenceBase` (an `IterableDataset`), the `DataParallel` replica on GPU 1 used GPU 0's
+  `FusedGRUPair` weights, and the loop overran `OneCycleLR` by one step. All three are fixed on
+  `covhead-retrain` (section 10); sequences that fail to load are still dropped, but the loaded
+  count is logged.
 - `train_flowformer.py`: load the checkpoint minus the replaced `conv4` keys; keep
   `--training_mode cov`; add stereo batches to the loop; log the new metrics
   (NLL, mean |c₃|, calibration ratio `rᵀ Σ⁻¹ r` which should average ≈ 2).
@@ -180,3 +181,77 @@ Keep as is: additive accumulation across iterations, γ weighting, per-iteration
 covariance representation against the loss with one batch on the shipped weights) and report
 the finding before changing anything else. Then implement 5.2–5.4 and section 6, run one
 short training to confirm the loop works end to end, and stop for review before the full run."
+
+## 10. Status on branch `covhead-retrain` (2026-10-19)
+
+Done, stopped for review before the full run (the section 9 brief).
+
+**Data.** All 180 v1 zips on `D:/Datasets/TartanAirV1`, sizes and checksums verified (939 GiB
+left on D:). `Config/Sequence/Training_Dataset/TartanAirV1_Zip.yaml`: 354 sequences, 297k
+frames. `TartanAirV1_Zip_Val.yaml`: `seasidetown`, 15 sequences, held out. It is the one public
+v1 environment missing from the authors' training lists, so neither head has trained on it.
+
+**5.1 finding.** The shipped weights emit log sigma. `Scripts/AdHoc/CovLossCheck.py`, 96 training
+pairs:
+- 80-89% of `c` is negative.
+- Read as log sigma, err^2/sigma^2 has mean 0.93 / 0.95 per axis and r^T Sigma^-1 r has mean
+  1.87. The median error tracks 0.674 e^c across all c deciles.
+- The shipped `cov_loss` is NaN on 82% of pixel terms and on every batch. It cannot have
+  produced the released weights. Upstream `main` has the same `loss.py`, and no GitHub issue
+  reports it.
+
+The paper's loss (Eq. 1, log-space sigma updates) matches the fix.
+
+**Masking decision: keep the covariance loss unmasked.** The pixels that a v1 mask flags are the
+ones where the head must learn a large sigma. Shipped head, 96 pairs from 8 training environments:
+
+| class | share | median sigma | median err | dropped by MAC-VO's 1.5x median filter |
+|---|---|---|---|---|
+| valid | 93% | 0.27 | 0.27 | 39% |
+| self-occluded | 1.8% | 1.38 | 1.73 | 96% |
+| out of view | 4.6% | 1.55 | 1.45 | 92% |
+| cross-occluded | 0.4% | 0.36 | 0.38 | 52% |
+
+Cross-occluded pixels are the weak spot. TartanVO excluded exactly this class from flow
+training, so excluding it is a candidate ablation. `cov_mask: True` now works, but is an
+ablation only. beta-NLL upweights high-sigma pixels, so watch the per-class table.
+
+**Implemented** (`3d2a7ce`, `12454a8`, `9ff9357`):
+- log-space NLL, a 2D Cholesky head (`cov_channels: 3`), beta-NLL (`beta`), and alternating
+  stereo steps (`stereo`) in `Config/Train/CovHeadChol.yaml`;
+- `inference()` returns 2 or 3 covariance entries, and the frontends keep sigma_uv;
+- `Export.py` refuses 3-channel heads until 7.4;
+- `Train/MatchingNet/evaluate.py` rewritten for gates 1-2: temporal + stereo, per mask class, all
+  checkpoints on the same pairs and pixels.
+
+Checks run (`3d2a7ce`):
+- A shipped checkpoint in the Cholesky model reproduces the shipped sigma (2e-4 relative) with
+  sigma_uv = 0.
+- The NLL matches an explicit inverse and log det.
+- Gradients reach `cov_update` only.
+- A 200-step run on both GPUs: EPE is unchanged to 4 decimals, |rho| reaches 0.06.
+
+**Baseline (shipped head, `seasidetown`, 60 pairs).**
+- Temporal: r^T Sigma^-1 r mean 2.20, median 0.90 (ideal 2, 1.386); NLL 0.58 nats; EPE 0.76.
+- Stereo: r^T Sigma^-1 r mean 5.73, median 0.86; NLL 2.06; EPE 0.96. The disparity sigma is
+  overconfident in the tail.
+
+The means are outlier-driven: 120 pairs gave temporal 4.38 and stereo 16.8. Gate on NLL and the
+medians, over at least 600 pairs.
+
+**Numerics.** With cuDNN's default TF32 convolutions, toggling `requires_grad` changes kernel
+choice. Flow then moves by a mean of 5e-4 px (max 0.29 px), and sigma^2 by a median of 2e-4
+relative. Compare EPE with a tolerance. `evaluate.py` builds every checkpoint the same way.
+
+**Run.** About 1.5 steps/s on 2x RTX 4090 (`DataParallel`, batch 6), so 30k steps take about
+5.5 h.
+
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/CovHeadChol.yaml --training_mode cov
+    python -m Train.MatchingNet.evaluate --config Config/Train/CovHeadChol.yaml         --ckpt Model/MACVO_FrontendCov.pth Model/FlowFormerCovChol<time>/30000.pth --pairs 600
+
+**Open.**
+- The v2 test set is not downloaded: issue #35 says it is on tartanair.org, but the exact link
+  is not found yet.
+- Gates 3-6 (pipeline, export, parity, C++ runtime) are not started.
+- 5.5 (the lighter branch) is not started.
+- The paper's per-iteration decay is 0.8; the config uses gamma 0.85, kept as shipped.
