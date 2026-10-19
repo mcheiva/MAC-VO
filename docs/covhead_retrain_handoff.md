@@ -214,10 +214,16 @@ ones where the head must learn a large sigma. Shipped head, 96 pairs from 8 trai
 
 Cross-occluded pixels are the weak spot. TartanVO excluded exactly this class from flow
 training, so excluding it is a candidate ablation. `cov_mask: True` now works, but is an
-ablation only. beta-NLL upweights high-sigma pixels, so watch the per-class table.
+ablation only.
+
+**beta: 0 for the main run.** With the flow frozen, beta-NLL loses its purpose: it keeps a jointly
+learned mean from under-fitting hard points. Each pixel's optimal sigma^2 is E[r^2] whatever beta is, so
+beta only reweights pixels by sigma^(2 beta). At 0.5, a sigma = 2 px pixel counts 10x more than a
+sigma = 0.2 px one. That moves capacity towards the uncertain pixels the selector discards, so
+beta = 0.5 is an ablation (Config `beta`).
 
 **Implemented** (`3d2a7ce`, `12454a8`, `9ff9357`):
-- log-space NLL, a 2D Cholesky head (`cov_channels: 3`), beta-NLL (`beta`), and alternating
+- log-space NLL, a 2D Cholesky head (`cov_channels: 3`), optional beta-NLL (`beta`, 0 in the run), and alternating
   stereo steps (`stereo`) in `Config/Train/CovHeadChol.yaml`;
 - `inference()` returns 2 or 3 covariance entries, and the frontends keep sigma_uv;
 - `Export.py` refuses 3-channel heads until 7.4;
