@@ -14,6 +14,7 @@ from Utility.PrettyPrint import Logger
 
 from ..SequenceBase import SequenceBase
 from ..Interface    import StereoInertialFrame, StereoFrame, StereoData, IMUData, AttitudeData
+from .Zipped        import ZipDir, ZipMember, imread, npload, loadtxt
 
 
 class TartanAir_Sequence(SequenceBase[StereoInertialFrame]):
@@ -92,8 +93,9 @@ class TartanAir_StereoSequence(SequenceBase[StereoFrame]):
         # End
         
         # Stereo Loader
-        self.lcam_loader = TartanAirMonocularDataset(Path(cfg.root, "image_left"))
-        self.rcam_loader = TartanAirMonocularDataset(Path(cfg.root, "image_right"))
+        root = Path(cfg.root)
+        self.lcam_loader = TartanAirMonocularDataset(resolve_dir(root, "image_left", ["image_left.zip"]))
+        self.rcam_loader = TartanAirMonocularDataset(resolve_dir(root, "image_right", ["image_right.zip"]))
 
         cam_time_file_path = Path(cfg.root, "imu", "cam_time.npy")
         if cam_time_file_path.exists():
@@ -104,13 +106,13 @@ class TartanAir_StereoSequence(SequenceBase[StereoFrame]):
 
         # Depth Loader
         if cfg.gtDepth:
-            self.depth_loader = TartanAirGTDepthDataset(Path(cfg.root, "depth_left"), cfg.compressed)
+            self.depth_loader = TartanAirGTDepthDataset(resolve_dir(root, "depth_left", ["depth_left.zip"]), cfg.compressed)
         else:
             self.depth_loader = None
         
         # Flow loader
         if cfg.gtFlow :
-            self.flow_loader  = TartanAirGTFlowDataset (Path(cfg.root, "flow"), cfg.compressed)
+            self.flow_loader  = TartanAirGTFlowDataset (resolve_dir(root, "flow", ["flow_flow.zip", "flow_mask.zip"]), cfg.compressed)
             length = len(self.flow_loader)
         else:
             self.flow_loader  = None
@@ -119,7 +121,8 @@ class TartanAir_StereoSequence(SequenceBase[StereoFrame]):
         # Pose Loader
         if cfg.gtPose:
             # gt_poses is originally on left camera sensor frame, need to convert to body frame
-            self.gt_poses = self.lcam_T_BS @ loadTartanAirGT(Path(cfg.root, "pose_left.txt")) @ self.lcam_T_BS.Inv()
+            pose_file = resolve_dir(root, "", ["image_left.zip"]) / "pose_left.txt"
+            self.gt_poses = self.lcam_T_BS @ loadTartanAirGT(pose_file) @ self.lcam_T_BS.Inv()
         else:
             self.gt_poses = None
 
@@ -160,6 +163,18 @@ class TartanAir_StereoSequence(SequenceBase[StereoFrame]):
         })
 
 
+def resolve_dir(root: Path, subdir: str, archives: list[str]) -> Path | ZipDir:
+    """
+    `root/subdir` on disk if it exists, otherwise the same directory inside the official TartanAir v1
+    zips stored next to `root` (read in place, never extracted): for root = <data>/<env>/<level>/P###
+    the zips are <data>/<env>/<level>/<modality>.zip with members <env>/<level>/P###/<subdir>/...
+    """
+    local = Path(root, subdir)
+    zips  = [root.parent / name for name in archives if (root.parent / name).exists()]
+    if local.exists() or not zips: return local
+    return ZipDir(zips, "/".join([*root.parts[-3:], subdir]))
+
+
 # Specific dataset for a single sensor
 
 class TartanAirMonocularDataset(Dataset):
@@ -168,7 +183,7 @@ class TartanAirMonocularDataset(Dataset):
     Return the image in shape (1, 3, H, W) with dtype=float32 
     and normalized (image in [0, 1])
     """
-    def __init__(self, directory: Path) -> None:
+    def __init__(self, directory: Path | ZipDir) -> None:
         super().__init__()
         self.directory = directory
         assert self.directory.exists(), f"Monocular image directory {self.directory} does not exist"
@@ -179,8 +194,8 @@ class TartanAirMonocularDataset(Dataset):
         assert self.length > 0, f"No flow with '.png' suffix is found under {self.directory}"
 
     @staticmethod
-    def load_png_format(path: Path) -> np.ndarray:
-        image = cv2.imread(str(path), cv2.IMREAD_COLOR)
+    def load_png_format(path: Path | ZipMember) -> np.ndarray:
+        image = imread(path, cv2.IMREAD_COLOR)
         assert image is not None
         
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -201,7 +216,7 @@ class TartanAirGTDepthDataset(Dataset):
     """
     Returns pixel depth in shape of (1, H, W)
     """
-    def __init__(self, directory: Path, compressed: bool) -> None:
+    def __init__(self, directory: Path | ZipDir, compressed: bool) -> None:
         super().__init__()
         self.directory = directory
         self.compressed = compressed
@@ -218,12 +233,12 @@ class TartanAirGTDepthDataset(Dataset):
     def __len__(self): return self.length
     
     @staticmethod
-    def load_npy_format(path: Path):
-        return np.load(str(path))
+    def load_npy_format(path: Path | ZipMember):
+        return npload(path)
 
     @staticmethod
-    def load_png_format(path: Path):
-        depth_rgba = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+    def load_png_format(path: Path | ZipMember):
+        depth_rgba = imread(path, cv2.IMREAD_UNCHANGED)
         assert depth_rgba is not None, f"Unable to load depth image at {path}"
         depth = TartanAirGTDepthDataset.depth_rgba_float32(depth_rgba)
         return depth
@@ -250,7 +265,7 @@ class TartanAirGTFlowDataset(Dataset):
     """
     Returns raw optical flow in shape of (1, 2, H, W)
     """
-    def __init__(self, directory: Path, compressed: bool) -> None:
+    def __init__(self, directory: Path | ZipDir, compressed: bool) -> None:
         super().__init__()
         self.directory = directory
         self.compressed = compressed
@@ -267,12 +282,12 @@ class TartanAirGTFlowDataset(Dataset):
         assert self.length > 0, f"No flow with *.png is found under {self.directory}"
     
     @staticmethod
-    def load_npy_format(path: Path) -> np.ndarray:
-        return np.load(str(path))
+    def load_npy_format(path: Path | ZipMember) -> np.ndarray:
+        return npload(path)
     
     @staticmethod
-    def load_png_format(path: Path) -> tuple[np.ndarray, np.ndarray]:
-        flow16 = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+    def load_png_format(path: Path | ZipMember) -> tuple[np.ndarray, np.ndarray]:
+        flow16 = imread(path, cv2.IMREAD_UNCHANGED)
         assert flow16 is not None, f"Error reading flow at {path}"
         flow32, mask = TartanAirGTFlowDataset.flow16to32(flow16)
         return flow32, mask
@@ -300,7 +315,14 @@ class TartanAirGTFlowDataset(Dataset):
         else:
             flow_npy = self.load_npy_format(self.file_names[index])
             flow_np = flow_npy[:,:,:2]
-            mask = flow_npy[:,:,2:]
+            if flow_npy.shape[2] > 2:
+                mask = flow_npy[:,:,2:]
+            else:
+                # Official v1 layout: 2-channel *_flow.npy plus a sibling *_mask.npy (uint8) where 0 = valid
+                # and 1 / 10 / 100 = invalid (out of view, occluded, ...). flow_mask is a validity mask
+                # downstream (non-zero = valid), so convert it.
+                mask_name = self.file_names[index].name.replace("_flow.npy", "_mask.npy")
+                mask = self.load_npy_format(self.directory / mask_name) == 0
         flow = torch.tensor(flow_np, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
         mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
         return flow, mask
@@ -449,8 +471,8 @@ class TartanAirIMULoader(Dataset[tuple[IMUData, AttitudeData]]):
         )
 
 
-def loadTartanAirGT(path: Path) -> pp.LieTensor:
-    se3_data = np.loadtxt(str(path))
+def loadTartanAirGT(path: Path | ZipMember) -> pp.LieTensor:
+    se3_data = loadtxt(path)
     return pp.SE3(se3_data)
 
 
