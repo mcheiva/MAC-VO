@@ -90,15 +90,24 @@ LICENSE file copied. Fix relative imports. Weights from Hugging Face `MemorySlic
 - Decoder depth configurable (`decoder_depth`), default 4 to match SEA-RAFT's training.
 
 ### 3. Head changes worth making while retraining (ranked)
+Items 1 and 2 exist for FlowFormerCov on branch `covhead-retrain`: `cov_entries` in `covhead.py`,
+`cov_nll` in `loss.py`, `stereo_target` in `Train/MatchingNet/utils.py`. Reuse them; see
+`docs/covhead_retrain_handoff.md` sections 10 and 11.
 1. Full 2x2 covariance: predict a Cholesky factor (3 channels) and use the full 2x2 Gaussian
    NLL. `from_partial_cov` and the selector/`MatchCovariance` already carry σ_uv.
 2. Stereo supervision: add (L, R) batches with GT disparity f·b/depth from TartanAir
    `depth_left`; `loss.py` has an unused `depth_loss` scaffold. This directly trains the
    disparity σ that drives the 3D covariance.
-3. β-NLL (Seitzer et al. 2022) instead of plain NLL for better-calibrated σ in hard regions.
+3. Not β-NLL while the matcher is frozen. β-NLL keeps a jointly learned mean from
+   under-fitting hard points. With only σ learned, it merely reweights pixels by σ^(2β),
+   towards the uncertain ones MAC-VO discards (`docs/covhead_retrain_handoff.md` section 10).
+   Consider it only if the flow is trained too.
 4. Lighter covariance branch (e.g. hidden 64): the cov GRU currently costs as much as the
    flow GRU.
-5. Optional validity channel trained with BCE on TartanAir `flow_mask`.
+5. Rather than a validity channel trained on `flow_mask`, which only knows occlusion, learn an
+   inlier probability from the actual errors with a mixture likelihood
+   (`docs/covhead_retrain_handoff.md` section 11). It also covers matching failures in
+   textureless or repetitive regions.
 Keep: additive log-σ recurrence, per-iteration γ weighting, 3D propagation in
 `Module/Covariance/Project2to3.py`.
 

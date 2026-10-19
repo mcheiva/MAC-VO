@@ -113,7 +113,8 @@ match the current loader API (`frameData.cur.stereo.imageL`, `gt_flow`).
 ### 5.3 β-NLL
 Scale the per-pixel NLL by `stopgrad(det Σ)^(β/2)` with β = 0.5 (Seitzer et al., "On the
 pitfalls of heteroscedastic uncertainty estimation", 2022). One line in the loss; make β a
-config value (β = 0 recovers plain NLL).
+config value (β = 0 recovers plain NLL). Superseded for the frozen-backbone run: β = 0, see
+section 10.
 
 ### 5.4 Stereo supervision
 Add stereo batches: inputs `(imageL, imageR)` of the same frame, target flow
@@ -261,3 +262,61 @@ relative. Compare EPE with a tolerance. `evaluate.py` builds every checkpoint th
 - Gates 3-6 (pipeline, export, parity, C++ runtime) are not started.
 - 5.5 (the lighter branch) is not started.
 - The paper's per-iteration decay is 0.8; the config uses gamma 0.85, kept as shipped.
+
+## 11. Beyond the paper: what the head is for, and what to try next (2026-10-19)
+
+**What the head is for.** For every frontend call, the head predicts per pixel how wrong the
+frozen matcher is, as a 2D Gaussian. The calls are stereo L->R for depth, temporal t->t+1, and
+in `MACVO_TRT` keyframe->current. MAC-VO consumes the prediction in three ways, so three
+properties matter:
+- **Ranking.** Keypoint selection drops depth σ² above `max_depth_cov`, ranks by depth variance
+  x (σ_uu + σ_vv − 2σ_uv), and filters at 1.5x the median (`Module/KeypointSelector.py`).
+- **Calibration of the keypoints that survive selection.** Their 3D covariance
+  (`Project2to3.py`) weights the pose graph. The absolute scale matters as well, because frame
+  covariances are added and the LM/iSAM2 robust thresholds are tuned to the shipped σ.
+- **Catching confident failures.** A wrong match that survives selection costs the most.
+
+All-pixel NLL is only a proxy for these.
+
+**TensorRT.** The changes so far are convs and element-wise ops. Map Cholesky -> Σ in fp32
+in-graph: σ² = e^(2c) reaches ~1.6e5, beyond fp16's 65504. The `cov` output becomes 3
+covariance entries (7.4, 7.6).
+
+**Ranked next steps.** In TensorRT each is element-wise or one extra channel, unless noted.
+1. **Measure what VO uses (no model change).** Sparsification curves and AUSE (Ilg et al. 2018),
+   reliability curves per σ bin, and calibration on the keypoints MAC-VO's selector picks, all
+   per call type.
+2. **Inlier probability.** Errors are heavy-tailed: calibration mean ≈ 2 but median ≈ 0.9
+   against 1.39. A single Gaussian is therefore too wide on the bulk and too narrow on failures.
+   - Model the error as p·N(0, Σ) + (1 − p)·(broad outlier term). Predict Σ and p (one channel
+     plus a sigmoid) and train on the mixture likelihood.
+   - The selector uses p; the pose graph gets a Σ calibrated on inliers.
+   - Lineage: PDC-Net / PDC-Net+ (Truong et al. 2021, 2023), SEA-RAFT's mixture of Laplace.
+   - Needs the runtime to read p.
+3. **Keyframe pairs in training.** The keyframe call has the largest decoder residual
+   (0.35 px) and is never trained. TartanAir ships GT flow for consecutive frames only, so
+   t->t+k flow has to come from depth and pose: back-project, transform, re-project, and use a
+   depth test for occlusion.
+4. **Deployment precision.** fp16/bf16 moves flow by ~0.8 px mean (section 8).
+   - Cheap: a per-call-type monotone correction of log σ, fitted on engine outputs over held-out
+     data and applied in-graph or in the runtime. It is also the point to re-tune the backend
+     thresholds.
+   - Better but harder: run the frozen part in the deployment dtype during training.
+5. **Focus on the deployed iteration.** Only the 12th σ is used, so `finalcov` mode or a
+   smaller γ is a cheap ablation.
+6. **Call-type awareness.** If stereo calibration is still off after this run, a per-call-type
+   output scale in the runtime is free. A learned call-type input would change the engine
+   interface.
+
+**Avoid.**
+- β-NLL with a frozen matcher (section 10).
+- Masking the unknowable pixels (section 10).
+- Left-right or forward-backward consistency features: they need extra network passes at
+  deployment.
+- A Student-t likelihood alone: the pose graph wants a Gaussian, and item 2 gives the same
+  robustness with an explicit outlier probability.
+
+**Order.** After the first full run: 1, then 6 and 3, then 2, then 4. The head only reads the
+decoder's 384-channel `inp_cat`, so all of this carries over to SEA-RAFT
+(`docs/searaft_cov_handoff.md`). For the replication itself, gate 3 on TartanAir v2 test remains
+the yardstick, so finding that data comes first.
