@@ -19,6 +19,20 @@ from .Twins.svt_large import Mlp
 from .pad_helper import pad_constant_zero
 
 
+def _project_context(proj: nn.Linear, context: torch.Tensor, B: int, H: int, W: int) -> torch.Tensor:
+    """
+    context: [B0, 256, H, W] -> [B, H, W, vert_c_dim], with rows aligned to x.
+
+    x arrives as [B0 * T, H*W, C] with row index b*T + t (CostPerceiverEncoder.forward), so the
+    context of sample b must be broadcast over its T latent tokens. Projecting once per sample
+    and expanding also avoids running `proj` T times on identical rows.
+    """
+    B0 = context.shape[0]
+    T = B // B0
+    ctx = proj(context.reshape(B0, -1, H * W).permute(0, 2, 1))        # [B0, HW, C]
+    ctx = ctx.unsqueeze(1).expand(B0, T, H * W, ctx.shape[-1])         # Expand, not Tile, in ONNX
+    return ctx.reshape(B, H, W, -1)
+
 
 class LocallyGroupedAttnRPEContext(nn.Module):
     """ LSA: self attention within a group
@@ -52,10 +66,7 @@ class LocallyGroupedAttnRPEContext(nn.Module):
         H, W = size
         C_qk = C+self.vert_c_dim
 
-        context = context.repeat(B//context.shape[0], 1, 1, 1)
-        context = context.view(B, -1, H*W).permute(0, 2, 1)
-        context = self.context_proj(context)
-        context = context.view(B, H, W, -1)
+        context = _project_context(self.context_proj, context, B, H, W)
 
         x = x.view(B, H, W, C)
         x_qk = torch.cat([x, context], dim=-1)
@@ -151,10 +162,7 @@ class GlobalSubSampleAttnRPEContext(nn.Module):
         B, N, C = x.shape
         C_qk = C + self.vert_c_dim
         H, W = size
-        context = context.repeat(B//context.shape[0], 1, 1, 1)
-        context = context.view(B, -1, H*W).permute(0, 2, 1)
-        context = self.context_proj(context)
-        context = context.view(B, H, W, -1)
+        context = _project_context(self.context_proj, context, B, H, W)
         x = x.view(B, H, W, C)
         x_qk = torch.cat([x, context], dim=-1)
         pad_l = pad_t = 0
