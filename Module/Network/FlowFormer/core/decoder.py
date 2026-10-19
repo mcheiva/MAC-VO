@@ -127,7 +127,7 @@ class MemoryDecoder(nn.Module):
         dy    = torch.linspace(-r, r, 2*r+1)
         delta = torch.stack(torch.meshgrid(dy, dx, indexing="ij"), dim=-1)
         delta = delta.view(1, 2*r+1, 2*r+1, 2)
-        self.register_buffer("delta", delta)
+        self.register_buffer("delta", delta, persistent=False)
             
     def upsample_flow(self, flow, mask):
         """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """

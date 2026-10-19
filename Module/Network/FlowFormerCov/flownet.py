@@ -53,12 +53,19 @@ class FlowFormerCov(FlowFormer):
         
         return flow_pre, torch.exp(cov_pre * 2)
 
+    # Checkpoint tensors the inference graph does not consume: the Twins final norms and the
+    # GMA relative position embedding. Everything else loads strictly, so a restructured
+    # module cannot silently keep random weights.
+    UNUSED_CKPT_KEYS = (
+        "context_encoder.svt.norm.weight", "context_encoder.svt.norm.bias",
+        "memory_encoder.feat_encoder.svt.norm.weight", "memory_encoder.feat_encoder.svt.norm.bias",
+        "memory_decoder.att.pos_emb.rel_ind",
+        "memory_decoder.att.pos_emb.rel_height.weight", "memory_decoder.att.pos_emb.rel_width.weight",
+    )
+
     def load_ddp_state_dict(self, ckpt: OrderedDict):
-        cvt_ckpt = OrderedDict()
-        for k in ckpt:
-            if k.startswith("module."):
-                cvt_ckpt[k[7:]] = ckpt[k]
-            else:
-                cvt_ckpt[k] = ckpt[k]
-        self.load_state_dict(cvt_ckpt, strict=False)
+        cvt_ckpt = OrderedDict((k[7:] if k.startswith("module.") else k, v) for k, v in ckpt.items())
+        for k in self.UNUSED_CKPT_KEYS:
+            cvt_ckpt.pop(k, None)
+        self.load_state_dict(cvt_ckpt, strict=True)
 
