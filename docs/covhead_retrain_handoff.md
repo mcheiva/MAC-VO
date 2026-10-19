@@ -39,9 +39,12 @@ Weights: `Model/MACVO_FrontendCov.pth` (77 MB, not tracked; copy it or
 
 Loader facts (`DataLoader/Dataset/TartanAir.py`): per sequence `image_left/`, `image_right/`,
 `flow/` (`*_flow.png` with `compressed: true`, or official `*_flow.npy` + `*_mask.npy` with
-`compressed: false`), `pose_left.txt`; `depth_left/` only if `gtDepth: true`. The trainer
+`compressed: false`), `pose_left.txt`; `depth_left/` only if `gtDepth: true`. When
+`root/<subdir>` does not exist, `resolve_dir` reads it in place from the official v1 zips next to
+`root` (`<root.parent>/<modality>.zip`, see `DataLoader/Dataset/Zipped.py`). The trainer
 accepts only `TartanAir_NoIMU` / `TartanAirv2_NoIMU` dataset types and trains on left-camera
 temporal pairs (`frameData.cur.stereo.imageL`, `frameData.nxt.stereo.imageL`, `gt_flow`, `flow_mask`).
+`flow_mask` is a validity mask downstream (`loss.py`: `mask &= flow_mask.bool()`).
 
 ## 3. Environment
 
@@ -53,17 +56,28 @@ directly and also work in a lighter env (torch, tensorrt, onnx, onnxsim, numpy, 
 
 ## 4. Data
 
-TartanAir v1 via `castacks/tartanair_tools` (`download_training.py --rgb --flow`, add
-`--depth` for stereo supervision, `--only-left/--only-right` not applicable since both cameras
-are needed). Start with a 6–8 environment subset of Easy + Hard (~80 sequences, ~150–300 GB
-with `--rgb --flow`); the 20 environments used by the authors are listed in
-`Config/Sequence/Training_Dataset/TartanAir_Train.yaml` / `TartanAir_TrainHard.yaml`. Official
-flow is `.npy`: set `compressed: false` in the sequence yaml (or convert to the 16-bit PNG form
-`TartanAirGTFlowDataset.flow16to32` expects). Edit every `root:` to the local path.
+TartanAir v1, all 18 public environments, Easy + Hard: 369 sequences, 306k flow pairs. Stored
+as the official zips, never extracted, at
+`D:/Datasets/TartanAirV1/<env>/<Easy|Hard>/{image_left,image_right,depth_left,flow_flow,flow_mask}.zip`
+(1.03 TB, every file SHA-256 verified). `Scripts/Dataset/download_tartanair_v1.py` fetches or
+resumes them. Sequence list: `Scripts/Dataset/make_tartanair_v1_seqs.py --data D:/Datasets/TartanAirV1
+--out Config/Sequence/Training_Dataset/TartanAirV1_Zip.yaml` (`compressed: false`, `gtDepth: true`;
+`--no-depth` for temporal-only runs). Each `root:` is `<data>/<env>/<level>/P###`, a path that
+does not exist on disk; the loader reads it from the zips beside it. Do not use the authors'
+`TartanAir_Train.yaml` / `TartanAir_TrainHard.yaml`. They point at an unreleased "v1.5"
+(`house`, `house_dist0`, `slaughter`, and ocean Easy P003/P007 are not in public v1).
 
-TartanAir v2 test (`TartanAirV2_Test.yaml`, 28 sequences, `TartanAirv2_NoIMU`) via the
-`tartanair` pip package: RGB + poses for the pipeline evaluation, flow if you also want
-`evaluate.py` numbers.
+Flow mask polarity: the official v1 `*_mask.npy` is 0 = valid, 1 / 10 / 100 = out of view or
+occluded. The `compressed: false` path converts it to a validity mask (`== 0`). Before this fix,
+that path read the mask as channel 2 of the 2-channel `*_flow.npy` and got an empty array. The
+`compressed: true` PNG path (v2) passes channel 2 through unchanged. The v2 docs call that format
+"same as TartanAir V1", so check the zero fraction on v2 data before trusting `flow_mask.bool()`
+there.
+
+TartanAir v2 test (`TartanAirV2_Test.yaml`, 28 sequences, `TartanAirv2_NoIMU`): not in the
+`tartanair` pip package's download index. The authors say it is released via tartanair.org
+(MAC-VO issue #35, March 2026). It needs `image_lcam_front/`, `image_rcam_front/`,
+`pose_lcam_front.txt`, and `flow_lcam_front/` for `evaluate.py`. Not downloaded yet.
 
 ## 5. Head changes (in this order)
 
@@ -118,6 +132,10 @@ Keep as is: additive accumulation across iterations, γ weighting, per-iteration
 
 ## 6. Trainer changes
 
+- `train_flowformer.py` as shipped fails when it builds the DataLoader: `ConcatDataset` rejects
+  `SequenceBase`, which is an `IterableDataset`. Wrap each `TrainDataset` in a map-style
+  adapter (`__len__`, `__getitem__`). It also drops sequences that fail to load without error
+  (`if ds is not None`), so log the count of sequences that loaded.
 - `train_flowformer.py`: load the checkpoint minus the replaced `conv4` keys; keep
   `--training_mode cov`; add stereo batches to the loop; log the new metrics
   (NLL, mean |c₃|, calibration ratio `rᵀ Σ⁻¹ r` which should average ≈ 2).
