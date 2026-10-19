@@ -38,6 +38,17 @@ class IMatcher(ABC, ConfigTestableSubclass):
                 cov =torch.cat([cov, torch.zeros((B, 1, H, W)).to(cov)], dim=1),
                 mask=mask
             )
+
+        @classmethod
+        def from_cov(cls,
+            flow: Jt.Float32[torch.Tensor, "B 2 H W"],
+            cov : Jt.Float32[torch.Tensor, "B _ H W"],
+            mask: Jt.Bool   [torch.Tensor, "B 1 H W"] | None = None
+        ) -> "IMatcher.Output":
+            """cov is [sigma_uu, sigma_vv] (sigma_uv = 0) or the full [sigma_uu, sigma_vv, sigma_uv]."""
+            if cov.size(1) == 2:
+                return cls.from_partial_cov(flow=flow, cov=cov, mask=mask)
+            return cls(flow=flow, cov=cov, mask=mask)
         
     """
     Estimate the optical flow map between two frames. (Use left-frame of stereo pair)
@@ -184,7 +195,7 @@ class FlowFormerCovMatcher(IMatcher):
             frame_t1.imageL.to(self.config.device),
             frame_t2.imageL.to(self.config.device),
         )
-        return IMatcher.Output.from_partial_cov(flow=flow, cov=flow_cov)
+        return IMatcher.Output.from_cov(flow=flow, cov=flow_cov)
     
     @classmethod
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:

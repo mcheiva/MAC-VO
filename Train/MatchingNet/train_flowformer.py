@@ -9,6 +9,7 @@ import torch.nn as nn
 from typing import get_args
 from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
+from collections import defaultdict
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
 from Train.MatchingNet.loss import sequence_loss, sequence_metric
@@ -19,6 +20,7 @@ from .utils import (
     T_TrainType,
     AssertLiteralType,
     IndexedDataset,
+    stereo_target,
     get_scheduler, get_optimizer
 )
 
@@ -82,20 +84,31 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
         wandb.init(project=modlecfg.name, config=modlecfg)
         wandb.watch(model, log=None)
         
+    # Stereo supervision (handoff 5.4): odd steps train on the (left, right) pair of the current frame
+    # instead of the temporal pair, the only supervision of the disparity sigma behind the 3D covariance.
+    use_stereo = bool(modlecfg.get("stereo", False))
+    running: dict[str, defaultdict[str, list[float]]] = {"temporal": defaultdict(list), "stereo": defaultdict(list)}
+
     total_steps = 0
     should_keep_training = True
     while should_keep_training:
         frameData: DataFramePair[StereoFrame]
         for frameData in ColoredTqdm(loader):
-            assert frameData.cur.stereo.gt_flow   is not None
-            assert frameData.cur.stereo.flow_mask is not None
             optimizer.zero_grad()
-            img1, img2 = frameData.cur.stereo.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
-            gt_flow = frameData.cur.stereo.gt_flow.cuda()
-            flow_mask = frameData.cur.stereo.flow_mask.cuda()
+            kind = "stereo" if use_stereo and total_steps % 2 == 1 else "temporal"
+            cur = frameData.cur.stereo
+            if kind == "stereo":
+                img1, img2 = cur.imageL.cuda(), cur.imageR.cuda()
+                gt_flow, flow_mask = stereo_target(cur).cuda(), None
+            else:
+                assert cur.gt_flow is not None and cur.flow_mask is not None
+                img1, img2 = cur.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
+                gt_flow, flow_mask = cur.gt_flow.cuda(), cur.flow_mask.cuda()
             
             flow, cov = model(img1, img2)
-            loss, _ = sequence_loss(cfg=modlecfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
+            loss, metrics = sequence_loss(cfg=modlecfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
+            running[kind]["loss"].append(loss.item())
+            for k, v in metrics.items(): running[kind][k].append(v)
             
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
@@ -105,11 +118,15 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             lr = optimizer.param_groups[0]["lr"]
             scaler.update()
             if total_steps % int(modlecfg.log_freq) == 0:
-                Logger.write("info", "Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
+                # means over the steps since the last log; calib = mean r^T Sigma^-1 r (2 when calibrated)
+                summary = {f"{k}/{name}": float(np.mean(vals)) for k, r in running.items() for name, vals in r.items()}
+                Logger.write("info", f"Iter: {total_steps}, lr {lr:.2e}, " + ", ".join(f"{k} {v:.4f}" for k, v in summary.items()))
                 if modlecfg.wandb:
-                    metrics = merge_matrices([sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask)[1]])
-                    metrics["lr"] = lr
-                    wandb.log(metrics)
+                    if kind == "temporal":
+                        summary.update({f"temporal/{k}": v for k, v in sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask).items()})
+                    summary["lr"] = lr
+                    wandb.log(summary, step=total_steps)
+                running = {"temporal": defaultdict(list), "stereo": defaultdict(list)}
                 
             total_steps += 1
 

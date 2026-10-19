@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from ..FlowFormer.core.utils import InputPadder
 from ..FlowFormer.core.transformer import FlowFormer
-from .covhead import MemoryCovDecoder
+from .covhead import MemoryCovDecoder, cov_entries
 
 
 class FlowFormerCov(FlowFormer):
@@ -51,7 +51,8 @@ class FlowFormerCov(FlowFormer):
         flow_pre = padder.unpad(flow_pre[0])
         cov_pre = padder.unpad(cov_pre[0])
         
-        return flow_pre, torch.exp(cov_pre * 2)
+        # [sigma_uu, sigma_vv] for the shipped head, [sigma_uu, sigma_vv, sigma_uv] for the Cholesky head
+        return flow_pre, cov_entries(cov_pre)
 
     # Checkpoint tensors the inference graph does not consume: the Twins final norms and the
     # GMA relative position embedding. Everything else loads strictly, so a restructured
@@ -63,9 +64,28 @@ class FlowFormerCov(FlowFormer):
         "memory_decoder.att.pos_emb.rel_height.weight", "memory_decoder.att.pos_emb.rel_width.weight",
     )
 
+    COV_CONV4 = "memory_decoder.cov_update.cov_head.conv4"
+
     def load_ddp_state_dict(self, ckpt: OrderedDict):
+        """
+        Strict load, except that the covariance head's conv4 follows the checkpoint:
+        * 2-channel checkpoint into a 3-channel (Cholesky) model: rows c1, c2 are copied and the c3 row is
+          zero, so the model starts exactly at the shipped diagonal solution (L21 = 0).
+        * 3-channel checkpoint into a 2-channel model (e.g. a frontend built from the default config): the
+          head is switched to 3 channels.
+        """
         cvt_ckpt = OrderedDict((k[7:] if k.startswith("module.") else k, v) for k, v in ckpt.items())
         for k in self.UNUSED_CKPT_KEYS:
             cvt_ckpt.pop(k, None)
+
+        head = self.memory_decoder.cov_update.cov_head
+        w, b = cvt_ckpt[self.COV_CONV4 + ".weight"], cvt_ckpt[self.COV_CONV4 + ".bias"]
+        if w.size(0) == 3 and head.conv4.out_channels == 2:
+            head.set_out_dim(3)
+            print("[FlowFormerCov] covariance head switched to 3 channels (Cholesky) to match the checkpoint")
+        elif w.size(0) == 2 and head.conv4.out_channels == 3:
+            cvt_ckpt[self.COV_CONV4 + ".weight"] = torch.cat([w, torch.zeros_like(w[:1])], dim=0)
+            cvt_ckpt[self.COV_CONV4 + ".bias"]   = torch.cat([b, torch.zeros_like(b[:1])], dim=0)
+            print("[FlowFormerCov] Cholesky covariance head initialised from a 2-channel checkpoint (c3 = 0)")
         self.load_state_dict(cvt_ckpt, strict=True)
 

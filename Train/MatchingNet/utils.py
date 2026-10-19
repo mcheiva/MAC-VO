@@ -2,6 +2,8 @@ import torch
 import warnings
 from typing import get_args, get_origin, Literal, TypeGuard, TypeVar
 
+from DataLoader import StereoData
+
 
 T_DataType  = Literal["fp32", "fp16", "bf16"]
 T_TrainType = Literal["flow", "cov", "flow+cov", "finalcov"]
@@ -38,6 +40,16 @@ def get_scheduler(scheduler_string: T_Scheduler) -> type[torch.optim.lr_schedule
         case "OneCycleLR":
             return torch.optim.lr_scheduler.OneCycleLR
         case _: raise Exception("Impossible")
+
+
+def stereo_target(data: StereoData) -> torch.Tensor:
+    """Left -> right flow of a rectified pair, (-fx * b / depth, 0); NaN where depth is not finite and positive."""
+    assert data.gt_depth is not None, "stereo supervision needs gtDepth: true in the sequence config"
+    depth = data.gt_depth
+    fxb   = (data.K[:, 0, 0] * data.baseline.view(-1)).view(-1, 1, 1, 1)
+    valid = torch.isfinite(depth) & (depth > 0)
+    u = torch.where(valid, -fxb / depth, float("nan"))
+    return torch.cat([u, torch.where(valid, 0., float("nan"))], dim=1)
 
 
 class IndexedDataset(torch.utils.data.Dataset):

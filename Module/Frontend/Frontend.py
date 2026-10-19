@@ -197,7 +197,7 @@ class FlowFormerCovFrontend(IFrontend):
     def inference_2_match(flow_12: torch.Tensor, cov_12: torch.Tensor) -> IMatcher.Output:
         match_map, match_cov = flow_12, cov_12
         match_mask = None
-        return IMatcher.Output.from_partial_cov(flow=match_map, cov=match_cov, mask=match_mask)
+        return IMatcher.Output.from_cov(flow=match_map, cov=match_cov, mask=match_mask)
 
     @torch.inference_mode()
     def estimate_depth(self, frame: StereoData) -> IStereoDepth.Output:

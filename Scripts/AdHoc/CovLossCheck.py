@@ -19,11 +19,15 @@ from torch.utils.data import ConcatDataset, DataLoader
 
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
 from Module.Network.FlowFormerCov import build_flowformer
-from Train.MatchingNet.loss import cov_loss
 from Train.MatchingNet.utils import IndexedDataset
 from Utility.Config import load_config, namespace_to_cfgnode
 
 CHI2_1_MEDIAN = 0.4549
+
+
+def shipped_term(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+    """Per-element term of the shipped cov_loss, which read c as a variance."""
+    return (pred - gt) ** 2 / (c + 1e-7) + torch.log(c + 1e-7)
 ABS_NORMAL_MEDIAN = 0.6745
 
 
@@ -69,11 +73,12 @@ def main():
                 eval_diff = (model(img1, img2)[1][0] - cov_preds[-1]).abs().max().item()
                 model.train()
 
-            # the shipped loss, exactly as train_flowformer.py calls it (cov_mask: False -> no mask)
-            losses.append(cov_loss(modelcfg.gamma, flow_preds, gt, cov_preds)[0].item())
+            # the loss as shipped (before the log-space fix): gamma-weighted err^2 / c + log c, all pixels
+            n = len(flow_preds)
+            losses.append(sum(modelcfg.gamma ** (n - i - 1) * shipped_term(flow_preds[i], gt, cov_preds[i])
+                              for i in range(n)).mean().item())
             c = cov_preds[-1]
-            term = (flow_preds[-1] - gt) ** 2 / (c + 1e-7) + torch.log(c + 1e-7)
-            nan_frac.append(term.isnan().float().mean().item())
+            nan_frac.append(shipped_term(flow_preds[-1], gt, c).isnan().float().mean().item())
 
             # per-pixel samples, both axes kept together: [N, 2]
             m = valid[:, 0].reshape(-1)

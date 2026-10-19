@@ -5,15 +5,33 @@ from ..FlowFormer.core.gru import SepConvGRU, FusedGRUPair
 from ..FlowFormer.core.decoder import MemoryDecoder, initialize_flow
 
 
+def cov_entries(c: torch.Tensor) -> torch.Tensor:
+    """
+    Decoder output c [B, C, H, W] -> covariance entries.
+    C = 2 (shipped head): log sigma per axis -> [sigma_uu, sigma_vv].
+    C = 3 (Cholesky head): L11 = exp(c1), L22 = exp(c2), L21 = c3 -> [sigma_uu, sigma_vv, sigma_uv] of
+    Sigma = L L^T. With c3 = 0 this is the C = 2 mapping plus sigma_uv = 0.
+    """
+    if c.size(1) == 2:
+        return torch.exp(2 * c)
+    l11, l22, l21 = torch.exp(c[:, 0:1]), torch.exp(c[:, 1:2]), c[:, 2:3]
+    return torch.cat([l11 * l11, l21 * l21 + l22 * l22, l11 * l21], dim=1)
+
+
 class CovHead(nn.Module):
 
-    def __init__(self, input_dim=128, hidden_dim=256):
+    def __init__(self, input_dim=128, hidden_dim=256, out_dim=2):
         super(CovHead, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
         self.conv2 = nn.Conv2d(hidden_dim, hidden_dim // 2, 3, padding=1)
         self.conv3 = nn.Conv2d(hidden_dim // 2, hidden_dim // 4, 3, padding=1)
-        self.conv4 = nn.Conv2d(hidden_dim // 4, 2, 3, padding=1)
+        self.conv4 = nn.Conv2d(hidden_dim // 4, out_dim, 3, padding=1)
         self.relu = nn.ReLU(inplace=True)
+
+    def set_out_dim(self, out_dim: int) -> None:
+        """Replace conv4 by a fresh conv with `out_dim` outputs (same dtype/device); caller loads its weights."""
+        old = self.conv4
+        self.conv4 = nn.Conv2d(old.in_channels, out_dim, 3, padding=1).to(device=old.weight.device, dtype=old.weight.dtype)
 
     def forward(self, x):
         x = self.conv2(self.relu(self.conv1(x)))
@@ -29,7 +47,8 @@ class CovUpdateBlock(nn.Module):
         self.gru = SepConvGRU(
             hidden_dim=hidden_dim, input_dim=128 + hidden_dim + hidden_dim
         )
-        self.cov_head = CovHead(hidden_dim, hidden_dim=256)
+        # cov_channels: 2 = per-axis log sigma (shipped), 3 = Cholesky factor of the full 2x2 covariance
+        self.cov_head = CovHead(hidden_dim, hidden_dim=256, out_dim=getattr(args, "cov_channels", 2))
         self.mask = nn.Sequential(
             nn.Conv2d(128, 256, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -74,7 +93,14 @@ class MemoryCovDecoder(MemoryDecoder):
         cost_memory = cost_memory.to(dtype=self.decoder_dtype)
 
         flow_coords0, flow_coords1 = initialize_flow(context)
-        cov_coords0 , cov_coords1  = flow_coords0, flow_coords1.clone()
+        # c accumulates the per-iteration updates. The 2-channel head keeps its original form (offsets on
+        # the pixel grid, differenced at the end) so existing engines and parity references stay exact.
+        cov_dim = self.cov_update.cov_head.conv4.out_channels
+        if cov_dim == 2:
+            cov_coords0, cov_coords1 = flow_coords0, flow_coords1.clone()
+        else:
+            cov_coords0 = torch.zeros_like(flow_coords0[:, :1]).repeat(1, cov_dim, 1, 1)
+            cov_coords1 = cov_coords0
 
         flow_predictions = []
         cov_predictions = []
