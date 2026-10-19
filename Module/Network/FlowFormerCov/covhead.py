@@ -62,7 +62,6 @@ class MemoryCovDecoder(MemoryDecoder):
         self.flow_token_encoder = self.flow_token_encoder.to(dtype=self.decoder_dtype)
         self.update_block       = self.update_block.to(dtype=self.decoder_dtype)
         self.cov_update         = self.cov_update.to(dtype=self.decoder_dtype)
-        self.fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru)
         # Diagnostics: when set to a list, forward appends the mean |delta_flow| of every
         # iteration. Leave None for export.
         self.iter_log: list | None = None
@@ -91,7 +90,10 @@ class MemoryCovDecoder(MemoryDecoder):
 
         size = flow_net.shape
         key, value = None, None
-        gru_pre = self.fused_gru.precompute(flow_inp)
+        # Built per forward from this module's own GRUs: nn.DataParallel replicas copy submodules,
+        # not plain attributes, so a pair stored in __init__ would keep pointing at GPU 0's weights.
+        fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru)
+        gru_pre = fused_gru.precompute(flow_inp)
 
         for i in range(self.depth):
             # Only the last iteration's upsampled flow / cov are returned in
@@ -119,7 +121,7 @@ class MemoryCovDecoder(MemoryDecoder):
             motion_feat_global = self.update_block.aggregator(attention, motion_feat)
 
             x_ab = torch.cat([motion_feat, motion_feat_global], dim=1)
-            flow_net, fcov_net = self.fused_gru.step(flow_net, fcov_net, x_ab, gru_pre)
+            flow_net, fcov_net = fused_gru.step(flow_net, fcov_net, x_ab, gru_pre)
             delta_flow = self.update_block.flow_head(flow_net)
             delta_cov  = self.cov_update.cov_head(fcov_net)
 

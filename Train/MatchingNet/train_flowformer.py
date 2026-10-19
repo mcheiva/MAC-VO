@@ -16,8 +16,9 @@ from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
 
 from .utils import (
-    T_TrainType, 
+    T_TrainType,
     AssertLiteralType,
+    IndexedDataset,
     get_scheduler, get_optimizer
 )
 
@@ -112,7 +113,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 
             total_steps += 1
 
-            if total_steps > modlecfg.num_steps:
+            if total_steps >= modlecfg.num_steps:     # OneCycleLR allows exactly num_steps scheduler steps
                 should_keep_training = False
                 break
 
@@ -153,11 +154,13 @@ if __name__ == "__main__":
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]
     
     traindatasets = TrainDataset[StereoFrame].mp_instantiation(datacfg.data, 0, -1, lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"})
+    traindatasets = [ds for ds in traindatasets if ds is not None]
+    Logger.write("info", f"Loaded {len(traindatasets)} of {len(datacfg.data)} training sequences, "
+                         f"{sum(len(ds) for ds in traindatasets)} pairs")
     trainloader = DataLoader[DataFramePair[StereoFrame]](
         ConcatDataset([
-            ds.transform_source(transforms)
+            IndexedDataset(ds.transform_source(transforms))
             for ds in traindatasets
-            if ds is not None
         ]),
         batch_size=modlecfg.batch_size,
         shuffle=True,

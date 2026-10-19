@@ -40,6 +40,13 @@ def get_scheduler(scheduler_string: T_Scheduler) -> type[torch.optim.lr_schedule
         case _: raise Exception("Impossible")
 
 
+class IndexedDataset(torch.utils.data.Dataset):
+    """Map-style view of a SequenceBase (an IterableDataset), which ConcatDataset and shuffling reject."""
+    def __init__(self, sequence) -> None: self.sequence = sequence
+    def __len__(self) -> int: return len(self.sequence)
+    def __getitem__(self, index: int): return self.sequence[index]
+
+
 def get_optimizer(optim_string: T_Optimizer) -> type[torch.optim.Optimizer]:
     AssertLiteralType(optim_string, T_Optimizer)
     
