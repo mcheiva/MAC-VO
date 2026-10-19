@@ -1,0 +1,2832 @@
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P010
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_Hard_P011
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory/Hard/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Easy_P013
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Easy/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P010
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P011
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P012
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P013
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: abandonedfactory_night_Hard_P014
+    args:
+        root: D:/Datasets/TartanAirV1/abandonedfactory_night/Hard/P014
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: amusement_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/amusement/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: carwelding_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/carwelding/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: endofworld_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/endofworld/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: gascola_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/gascola/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P013
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P014
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P014
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P015
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P015
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P016
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P016
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P017
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P017
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P018
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P018
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P019
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P019
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P020
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P020
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P021
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P021
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P022
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P022
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P023
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P023
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P024
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P024
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P025
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P025
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P026
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P026
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P027
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P027
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P028
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P028
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P029
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P029
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P030
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P030
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P031
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P031
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P032
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P032
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P033
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P033
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P034
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P034
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P035
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P035
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Easy_P036
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Easy/P036
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P037
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P037
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P038
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P038
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P039
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P039
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P040
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P040
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P041
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P041
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P042
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P042
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P043
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P043
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P044
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P044
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P045
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P045
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P046
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P046
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P047
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P047
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P048
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P048
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: hospital_Hard_P049
+    args:
+        root: D:/Datasets/TartanAirV1/hospital/Hard/P049
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: japanesealley_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/japanesealley/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P013
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P014
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P014
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P015
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P015
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P016
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P016
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P017
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P017
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P018
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P018
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P019
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P019
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P020
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P020
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Easy_P021
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Easy/P021
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P010
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P011
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P012
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P013
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P014
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P014
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P015
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P015
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P016
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P016
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: neighborhood_Hard_P017
+    args:
+        root: D:/Datasets/TartanAirV1/neighborhood/Hard/P017
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Easy_P013
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Easy/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: ocean_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/ocean/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/office/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/office/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: office2_Hard_P010
+    args:
+        root: D:/Datasets/TartanAirV1/office2/Hard/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: oldtown_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/oldtown/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P010
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P011
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P012
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P013
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P014
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P014
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P015
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P015
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P016
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P016
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P017
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P017
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: seasonsforest_winter_Hard_P018
+    args:
+        root: D:/Datasets/TartanAirV1/seasonsforest_winter/Hard/P018
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P003
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P008
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: soulcity_Hard_P009
+    args:
+        root: D:/Datasets/TartanAirV1/soulcity/Hard/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P001
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P002
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P004
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P010
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P010
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P011
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P011
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P012
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P012
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Easy_P013
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Easy/P013
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P000
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P001
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P001
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P003
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P003
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P004
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P004
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P005
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P006
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: westerndesert_Hard_P007
+    args:
+        root: D:/Datasets/TartanAirV1/westerndesert/Hard/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
