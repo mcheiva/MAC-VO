@@ -65,3 +65,10 @@ MACVO_TRT_BuildCpp/Testing/
 
 # Loose data folders / scratch
 data/
+
+# parity harness artefacts (large / regenerable)
+runs/ref/
+runs/*.log
+runs/*.timing
+runs/*_tum.txt
+runs/trtexec_*

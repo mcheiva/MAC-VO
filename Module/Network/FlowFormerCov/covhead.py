@@ -63,6 +63,9 @@ class MemoryCovDecoder(MemoryDecoder):
         self.update_block       = self.update_block.to(dtype=self.decoder_dtype)
         self.cov_update         = self.cov_update.to(dtype=self.decoder_dtype)
         self.fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru)
+        # Diagnostics: when set to a list, forward appends the mean |delta_flow| of every
+        # iteration. Leave None for export.
+        self.iter_log: list | None = None
 
     def forward(self, cost_memory, context, cost_maps):  # pyright: ignore[reportIncompatibleMethodOverride]
         """
@@ -124,6 +127,8 @@ class MemoryCovDecoder(MemoryDecoder):
             # consumes the updated coords (matches the original code).
             delta_flow_fp32 = delta_flow.to(dtype=torch.float32)
             flow_coords1    = flow_coords1 + delta_flow_fp32
+            if self.iter_log is not None:
+                self.iter_log.append(delta_flow_fp32.norm(dim=1).mean().item())
 
             delta_cov_fp32 = delta_cov.to(dtype=torch.float32)
             cov_coords1    = cov_coords1 + delta_cov_fp32
