@@ -10,6 +10,36 @@ from .attention import BroadMultiHeadAttention, MultiHeadAttention, LinearPositi
 from .pad_helper import pad_constant_zero
 
 
+def s2d_weight(conv: nn.Conv2d) -> torch.Tensor:
+    """
+    Weights of a 6x6 / stride-2 / pad-2 conv, [O, C, 6, 6], rearranged for the equivalent
+    3x3 / stride-1 / pad-1 conv over the pixel_unshuffle(2) input, [O, C*4, 3, 3] with input
+    channel c*4 + dy*2 + dx.
+
+    out[o] = sum_t W[t] x[2o - 2 + t]; writing the input index as 2i + dy (cell i, phase dy)
+    gives t = 2*ky + dy and i = o - 1 + ky, i.e. a 3-tap conv over cells. The stride-2
+    1-channel form maps to very slow conv kernels in TensorRT.
+    """
+    w = conv.weight
+    O, C = w.shape[:2]
+    return w.view(O, C, 3, 2, 3, 2).permute(0, 1, 3, 5, 2, 4).reshape(O, C * 4, 3, 3)
+
+
+def conv3x3_cells_to_s2d(x: torch.Tensor, w3: torch.Tensor, bias: torch.Tensor) -> torch.Tensor:
+    """
+    3x3/s1/p1 conv over a cell grid (h, w even) whose output is produced directly in
+    pixel_unshuffle(2) order: [N, O*4, h/2, w/2] with channel o*4 + dy*2 + dx. Implemented as a
+    4x4/s2/p1 conv: output cell j, phase dy reads input cells 2j+dy-1 .. 2j+dy+1, so tap
+    ty = dy + ky. 1.78x the MACs of the 3x3 form (zero taps) but no transpose of the large
+    intermediate activation between PatchEmbed stages.
+    """
+    O, Cin = w3.shape[:2]
+    parts = [pad_constant_zero(w3, (dx, 1 - dx, dy, 1 - dy)) for dy in (0, 1) for dx in (0, 1)]
+    w4 = torch.stack(parts, 1).reshape(O * 4, Cin, 4, 4)
+    b4 = bias.repeat_interleave(4)
+    return F.conv2d(x, w4, b4, stride=2, padding=1)
+
+
 class PatchEmbed(nn.Module):
     def __init__(self, in_chans=1, embed_dim=64):
         super().__init__()
@@ -31,6 +61,7 @@ class PatchEmbed(nn.Module):
         self.norm = nn.LayerNorm(embed_dim*2)
 
     def forward(self, x) -> tuple[torch.Tensor, list[int]]:
+        """Reference (token-major) implementation; forward_cf is the one used at inference."""
         B, C, H, W = x.shape    # C == 1
 
         pad_l = pad_t = 0
@@ -39,20 +70,57 @@ class PatchEmbed(nn.Module):
         x = pad_constant_zero(x, (pad_l, pad_r, pad_t, pad_b))
 
         x = self.proj(x)
-        out_size = x.shape[2:] 
+        out_size = x.shape[2:]
 
+        # The encoding is identical for every one of the B (= batch*H1*W1) cost maps:
+        # build it once and broadcast. Static H/W folds the sin/cos into constants in ONNX.
         patch_coord = coords_grid(
-            B, out_size[0], out_size[1], x.device, x.dtype
+            1, out_size[0], out_size[1], x.device, x.dtype
         ) * self.patch_size + (self.patch_size / 2) # in feature coordinate space
-        patch_coord = patch_coord.view(B, 2, -1).permute(0, 2, 1)
+        patch_coord = patch_coord.view(1, 2, -1).permute(0, 2, 1)
         patch_coord_enc = LinearPositionEmbeddingSine(patch_coord, dim=self.dim)
-        
-        patch_coord_enc = patch_coord_enc.permute(0, 2, 1).view(B, -1, out_size[0], out_size[1])
+        patch_coord_enc = patch_coord_enc.permute(0, 2, 1).view(1, -1, out_size[0], out_size[1])
 
-        x_pe = torch.cat([x, patch_coord_enc], dim=1)
+        x_pe = torch.cat([x, patch_coord_enc.expand(B, -1, -1, -1)], dim=1)
         x = self.ffn_with_coord(x_pe)
         x = self.norm(x.flatten(2).transpose(1, 2))
 
+        return x, out_size
+
+    def forward_cf(self, x) -> tuple[torch.Tensor, list[int]]:
+        """
+        Same function as forward(), but returns the normalised tokens channels-first,
+        [B*H1*W1, 2*dim, h*w], so the large token tensor is never transposed. LayerNorm is
+        written out over dim 1.
+        """
+        B, C, H, W = x.shape
+        pad_r = (self.patch_size - W % self.patch_size) % self.patch_size
+        pad_b = (self.patch_size - H % self.patch_size) % self.patch_size
+        x = pad_constant_zero(x, (0, pad_r, 0, pad_b))
+        # == relu(proj0) / relu(proj2) / proj4, each 6x6/s2/p2. One pixel_unshuffle on the input,
+        # then every stage emits its output already in the next stage's unshuffled order.
+        x = F.pixel_unshuffle(x, 2)                                                   # [N, 4, H/2, W/2]
+        x = F.relu(conv3x3_cells_to_s2d(x, s2d_weight(self.proj[0]), self.proj[0].bias))   # [N, 64, H/4, W/4]
+        x = F.relu(conv3x3_cells_to_s2d(x, s2d_weight(self.proj[2]), self.proj[2].bias))   # [N, 128, H/8, W/8]
+        x = F.conv2d(x, s2d_weight(self.proj[4]), self.proj[4].bias, padding=1)            # [N, 64, H/8, W/8]
+        out_size = x.shape[2:]
+
+        patch_coord = coords_grid(1, out_size[0], out_size[1], x.device, x.dtype) * self.patch_size + (self.patch_size / 2)
+        patch_coord_enc = LinearPositionEmbeddingSine(patch_coord.view(1, 2, -1).permute(0, 2, 1), dim=self.dim)
+        patch_coord_enc = patch_coord_enc.permute(0, 2, 1).view(1, -1, out_size[0], out_size[1])
+        # ffn_with_coord[0](cat[x, pe]) == W[:, :dim] x + (W[:, dim:] pe + b). The second term is a
+        # constant [2*dim, h*w] that varies over position, so it cannot be a conv bias; as a GEMM
+        # over channels-first tokens the broadcast add and the ReLU fuse into the epilogue.
+        w0, b0 = self.ffn_with_coord[0].weight, self.ffn_with_coord[0].bias
+        w2, b2 = self.ffn_with_coord[2].weight, self.ffn_with_coord[2].bias
+        x = x.flatten(2)                                                 # [B, dim, h*w]
+        pe_term = F.conv2d(patch_coord_enc, w0[:, self.dim:], b0).flatten(2)   # [1, 2*dim, h*w]
+        x = F.relu(torch.matmul(w0[:, :self.dim, 0, 0], x) + pe_term)    # [B, 2*dim, h*w]
+        x = torch.matmul(w2[:, :, 0, 0], x) + b2[None, :, None]
+        mu = x.mean(dim=1, keepdim=True)
+        var = (x - mu).square().mean(dim=1, keepdim=True)
+        x = (x - mu) * torch.rsqrt(var + self.norm.eps)
+        x = x * self.norm.weight[None, :, None] + self.norm.bias[None, :, None]
         return x, out_size
 
 
@@ -181,6 +249,7 @@ class CrossAttentionLayer(nn.Module):
     def forward(self, query, tgt_token):
         """
             x: [BH1W1, H3W3, D]
+            Reference (token-major) implementation; forward_cf is the one used at inference.
         """
         short_cut = query
         query = self.norm1(query)
@@ -189,6 +258,37 @@ class CrossAttentionLayer(nn.Module):
         x = short_cut + self.proj_drop(self.proj(x))
         x = x + self.drop_path(self.ffn(self.norm2(x)))
 
+        return x
+
+    def forward_cf(self, query: torch.Tensor, tgt_cf: torch.Tensor) -> torch.Tensor:
+        """
+        Same function as forward() for a constant query (the learned latent tokens, [1, Q, C])
+        and channels-first targets tgt_cf [N, D, T]. Re-associated so the K and V projections
+        of the N*T target tokens are never materialised:
+            scores_qh = (q_h Wk_h) . xn            (q_h bk_h is constant over keys: softmax-invariant)
+            out_qh    = (A_qh . xn) Wv_h^T + bv_h   (rows of A sum to 1)
+        Exact in real arithmetic; fp rounding differs from forward().
+        """
+        N = tgt_cf.shape[0]
+        heads = self.multi_head_attn.heads
+        Q = query.shape[1]
+        qk_dim = self.q.out_features
+        hd = qk_dim // heads
+        q = self.q(self.norm1(query))                                   # [1, Q, qk_dim]
+        q = q.view(Q, heads, hd).permute(1, 0, 2)                       # [h, Q, hd]
+        wk = self.k.weight.view(heads, hd, -1)                          # [h, hd, D]
+        qp = torch.matmul(q, wk).reshape(heads * Q, -1)                 # [h*Q, D]
+        scale = hd ** -0.5
+        scores = torch.matmul(qp * scale, tgt_cf)                       # [N, h*Q, T]
+        attn = scores.softmax(dim=-1)
+        z = torch.matmul(attn, tgt_cf.transpose(1, 2))                  # [N, h*Q, D]
+        z = z.view(N, heads, Q, -1)
+        wv = self.v.weight.view(heads, hd, -1)                          # [h, hd, D]
+        out = torch.matmul(z, wv.transpose(1, 2))                       # [N, h, Q, hd]
+        out = out + self.v.bias.view(1, heads, 1, hd)
+        out = out.permute(0, 2, 1, 3).reshape(N, Q, heads * hd)         # heads concatenated as in forward()
+        x = query + self.proj_drop(self.proj(out))
+        x = x + self.drop_path(self.ffn(self.norm2(x)))
         return x
 
 
@@ -223,11 +323,8 @@ class CostPerceiverEncoder(nn.Module):
         B, heads, H1, W1, H2, W2 = cost_volume.shape
         cost_maps = cost_volume.permute(0, 2, 3, 1, 4, 5).contiguous().view(B*H1*W1, self.cost_heads_num, H2, W2)
         
-        #with torch.cuda.nvtx.range("Patch Embed"):
-        x, size = self.patch_embed(cost_maps)   # B*H1*W1, size[0]*size[1], C
-
-        #with torch.cuda.nvtx.range("Cross Attention"):
-        x = self.input_layer(self.latent_tokens, x)
+        x, size = self.patch_embed.forward_cf(cost_maps)        # B*H1*W1, C, size[0]*size[1]
+        x = self.input_layer.forward_cf(self.latent_tokens, x)  # B*H1*W1, tokens, C
 
         short_cut = x
 
