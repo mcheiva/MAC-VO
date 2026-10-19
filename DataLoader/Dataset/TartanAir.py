@@ -309,6 +309,18 @@ class TartanAirGTFlowDataset(Dataset):
     def __len__(self):
         return self.length
     
+    def mask_file(self, index: int) -> Path | ZipMember:
+        return self.directory / self.file_names[index].name.replace("_flow.npy", "_mask.npy")
+
+    def mask_codes(self, index: int) -> np.ndarray:
+        """
+        Raw mask values (H x W, uint8). TartanAir v1: 0 valid, 1 cross-occluded, 10 self-occluded,
+        100 out of view (as documented in TartanVO, Module/Network/PWCNet/pwc/pwc_model_tartanvo.py).
+        """
+        if self.compressed:
+            return self.load_png_format(self.file_names[index])[1]
+        return self.load_npy_format(self.mask_file(index))
+
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         if self.compressed:
             flow_np, mask = self.load_png_format(self.file_names[index])
@@ -318,11 +330,9 @@ class TartanAirGTFlowDataset(Dataset):
             if flow_npy.shape[2] > 2:
                 mask = flow_npy[:,:,2:]
             else:
-                # Official v1 layout: 2-channel *_flow.npy plus a sibling *_mask.npy (uint8) where 0 = valid
-                # and 1 / 10 / 100 = invalid (out of view, occluded, ...). flow_mask is a validity mask
-                # downstream (non-zero = valid), so convert it.
-                mask_name = self.file_names[index].name.replace("_flow.npy", "_mask.npy")
-                mask = self.load_npy_format(self.directory / mask_name) == 0
+                # Official v1 layout: 2-channel *_flow.npy plus a sibling *_mask.npy, see `mask_codes`.
+                # flow_mask is a validity mask downstream (non-zero = valid), so keep code 0 only.
+                mask = self.load_npy_format(self.mask_file(index)) == 0
         flow = torch.tensor(flow_np, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
         mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
         return flow, mask
