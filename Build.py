@@ -34,11 +34,10 @@ Equivalent trtexec invocations:
       --optShapes=image_1:2x3x704x704,image_2:2x3x704x704 ^
       --maxShapes=image_1:2x3x704x704,image_2:2x3x704x704
 
-Note: trtexec ships TRT 10.13 in the local CUDA bin; the Python `tensorrt`
-package is 10.7. Plans built by trtexec do NOT load via Python tensorrt
+Note: engines are only loadable by the exact TensorRT version that built them
 ("Version tag does not match. Current Version: 240, Serialized Engine
-Version: 239"). Use this Python builder for plans consumed by the Python
-runtime, the C++ tool in MACVO_TRT_BuildCpp/ for the C++ runtime.
+Version: 239"). Check `tensorrt.__version__` against the nvinfer_10 the C++
+runtime links before shipping a plan.
 """
 import argparse
 import sys

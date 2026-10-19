@@ -39,6 +39,8 @@ Equivalent trtexec for fast mode (matches gold root plan):
 Opset 18 is the only safe choice for TRT 10.7's parser: opset-20 graphs parse
 but are silently mis-compiled (fp32 plan EPE 0.94 px -> 6.4 px) even though
 ONNXRuntime parses them correctly.
+
+Validate an export against the fp32 reference set with Scripts/Parity/compare.py.
 """
 import argparse
 import os
@@ -48,8 +50,11 @@ import onnx
 import onnxsim
 import torch
 
-from Module.Network.FlowFormer.configs.submission import get_cfg
-from Module.Network.FlowFormerCov import build_flowformer
+# Import the network package directly: `import Module` pulls DataLoader -> scipy, which is
+# binary-incompatible with numpy>=2 in the export environment and is not needed here.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "Module"))
+from Network.FlowFormer.configs.submission import get_cfg   # noqa: E402
+from Network.FlowFormerCov import build_flowformer           # noqa: E402
 
 
 _DTYPES = {
@@ -70,14 +75,14 @@ class FlowFormerCovWrapper(torch.nn.Module):
     Both pre/post-process intentionally live OUTSIDE the graph.
     """
 
-    def __init__(self, mode: str = "fast"):
+    def __init__(self, mode: str = "fast", decoder_depth: int = 12):
         super().__init__()
         if mode not in _DTYPES:
             raise ValueError(f"Unknown mode {mode!r} (expected 'fast' or 'precise')")
         enc_dtype, dec_dtype = _DTYPES[mode]
 
         cfg = get_cfg()
-        cfg.latentcostformer.decoder_depth = 12
+        cfg.latentcostformer.decoder_depth = decoder_depth
         # Bake (encoder, decoder) build dtypes per mode.
         # fast:    fp16 / bf16 -- matches the recipe behind the gold root plan
         #          when paired with Build.py --mode fast.
@@ -106,11 +111,12 @@ class FlowFormerCovWrapper(torch.nn.Module):
 def export(onnx_path: str | None = None,
            opset_version: int = 18,
            run_onnxsim: bool = True,
-           mode: str = "fast") -> None:
+           mode: str = "fast",
+           decoder_depth: int = 12) -> None:
     if onnx_path is None:
         onnx_path = _DEFAULT_OUT[mode]
 
-    model = FlowFormerCovWrapper(mode=mode)
+    model = FlowFormerCovWrapper(mode=mode, decoder_depth=decoder_depth)
 
     H = W = 704
     batch_size = 1
@@ -123,6 +129,7 @@ def export(onnx_path: str | None = None,
 
     print(f"[1/3] Tracing -> ONNX (mode={mode}, opset={opset_version})...", flush=True)
     with torch.inference_mode():
+        model(inpA, inpB)   # warm-up: fills size-keyed caches (coords_grid) so they trace as constants
         torch.onnx.export(
             model,
             (inpA, inpB),
@@ -139,6 +146,9 @@ def export(onnx_path: str | None = None,
                 "cov_raw":  {0: "batch"},
             },
             export_params=True,
+            # The exporter's own folder re-runs weight-only subgraphs with parameters on the CPU and
+            # other constants on CUDA and fails on the mixed `cat`; onnxsim / TensorRT fold instead.
+            do_constant_folding=False,
         )
 
     # Free GPU memory before onnxsim's CUDA shape inference.
@@ -152,11 +162,26 @@ def export(onnx_path: str | None = None,
     print(f"[2/3] Loading + simplifying with onnxsim...", flush=True)
     m = onnx.load(onnx_path, load_external_data=True)
     pre_n = len(m.graph.node)
-    m_simp, ok = onnxsim.simplify(m)
+    m_simp, ok = None, False
+    for kw in ({}, {"skip_shape_inference": True}):
+        try:
+            m_simp, ok = onnxsim.simplify(m, **kw)
+        except Exception as e:  # onnx-optimizer asserts on some of these graphs
+            print(f"  onnxsim.simplify({kw}) raised: {str(e).splitlines()[-1][:120]}", flush=True)
+            ok = False
+        if ok:
+            break
     if not ok:
-        raise RuntimeError("onnxsim.simplify failed validation")
+        # TensorRT folds constants itself; the unsimplified graph parses and builds.
+        print(f"WARN: onnxsim failed; keeping the unsimplified graph at {onnx_path}", flush=True)
+        return
     post_n = len(m_simp.graph.node)
     print(f"  nodes {pre_n} -> {post_n} ({pre_n - post_n} removed)")
+    # Op histogram: the TRT-unfriendly ones to watch are ScatterND, Loop/If, Pad, Tile,
+    # excessive Cast/Concat/Reshape/Transpose counts.
+    from collections import Counter
+    hist = Counter(n.op_type for n in m_simp.graph.node)
+    print("  ops: " + ", ".join(f"{k}={v}" for k, v in sorted(hist.items(), key=lambda kv: -kv[1])))
 
     print(f"[3/3] Saving simplified ONNX with external data...", flush=True)
     location = os.path.basename(onnx_path) + ".data"
@@ -182,12 +207,15 @@ def main() -> int:
                    help="ONNX opset version (18 is the only TRT 10.7-safe choice)")
     p.add_argument("--no-onnxsim", action="store_true",
                    help="Skip onnxsim post-pass")
+    p.add_argument("--decoder-depth", type=int, default=12,
+                   help="Decoder iterations (weights are shared across iterations)")
     args = p.parse_args()
 
     export(onnx_path=args.onnx,
            opset_version=args.opset,
            run_onnxsim=not args.no_onnxsim,
-           mode=args.mode)
+           mode=args.mode,
+           decoder_depth=args.decoder_depth)
     return 0
 
 
