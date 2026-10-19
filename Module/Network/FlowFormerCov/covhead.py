@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ..FlowFormer.core.gru import SepConvGRU
+from ..FlowFormer.core.gru import SepConvGRU, FusedGRUPair
 from ..FlowFormer.core.decoder import MemoryDecoder, initialize_flow
 
 
@@ -62,6 +62,7 @@ class MemoryCovDecoder(MemoryDecoder):
         self.flow_token_encoder = self.flow_token_encoder.to(dtype=self.decoder_dtype)
         self.update_block       = self.update_block.to(dtype=self.decoder_dtype)
         self.cov_update         = self.cov_update.to(dtype=self.decoder_dtype)
+        self.fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru)
 
     def forward(self, cost_memory, context, cost_maps):  # pyright: ignore[reportIncompatibleMethodOverride]
         """
@@ -87,6 +88,7 @@ class MemoryCovDecoder(MemoryDecoder):
 
         size = flow_net.shape
         key, value = None, None
+        gru_pre = self.fused_gru.precompute(flow_inp)
 
         for i in range(self.depth):
             # Only the last iteration's upsampled flow / cov are returned in
@@ -113,12 +115,10 @@ class MemoryCovDecoder(MemoryDecoder):
             motion_feat        = self.update_block.encoder(flow, corr)
             motion_feat_global = self.update_block.aggregator(attention, motion_feat)
 
-            inp_cat = torch.cat([flow_inp, motion_feat, motion_feat_global], dim=1)
-
-            flow_net   = self.update_block.gru(flow_net, inp_cat)
+            x_ab = torch.cat([motion_feat, motion_feat_global], dim=1)
+            flow_net, fcov_net = self.fused_gru.step(flow_net, fcov_net, x_ab, gru_pre)
             delta_flow = self.update_block.flow_head(flow_net)
-
-            fcov_net, delta_cov = self.cov_update.forward_state(fcov_net, inp_cat)
+            delta_cov  = self.cov_update.cov_head(fcov_net)
 
             # State propagation must happen every iteration so the next iter
             # consumes the updated coords (matches the original code).
