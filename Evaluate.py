@@ -35,6 +35,7 @@ Examples:
 """
 import argparse
 import glob
+import re
 import hashlib
 import json
 import os
@@ -63,9 +64,8 @@ AUTO_SEARCH_MACVO_EXE = [
     "../MACVO_TRT/build/bin/RelWithDebInfo/macvo.exe",
     "../MACVO_TRT/build/bin/Debug/macvo.exe",
 ]
-AUTO_SEARCH_DATASET = [
-    "C:/src/git/AI/Photogrammetry/TestingUtils/performancedata/plane_nose",
-]
+_PERF = "C:/src/git/AI/Photogrammetry/TestingUtils/performancedata"
+AUTO_SEARCH_DATASET = [f"{_PERF}/plane_nose", f"{_PERF}/plane_tail1"]
 
 
 def first_existing(candidates: list[str], cwd: Path) -> Path | None:
@@ -160,9 +160,11 @@ def load_data():
     if left.ndim == 3:
         left = left[None, ...]
         right = right[None, ...]
-    if left.max() <= 1.5:
-        left = left * 255.0
-        right = right * 255.0
+    # Engine contract (Export.py): inputs in [0, 1]. Samples saved by MACVO_Test.py are
+    # already [0, 1]; only rescale genuine uint8-range arrays.
+    if left.max() > 1.5:
+        left = left / 255.0
+        right = right / 255.0
     yield {{
         "image_1": np.ascontiguousarray(left),
         "image_2": np.ascontiguousarray(right),
@@ -239,67 +241,116 @@ def stage_trt_parity(plan_path: Path, loader_path: Path, ort_outs_path: Path,
 
 def stage_trajectory(plan_path: Path, label: str, macvo_exe: Path,
                      dataset_dir: Path, runs_dir: Path) -> dict:
+    """Replay one sequence; also parse fps / tracking ms from the end-of-run summary."""
     runs_dir.mkdir(parents=True, exist_ok=True)
-    tum_out = runs_dir / f"plane_nose_{label}_tum.txt"
-    tum_gt_out = runs_dir / f"plane_nose_{label}_gt_tum.txt"
-    run_cmd(
-        [macvo_exe, "--no-viz",
-         "--engine", plan_path,
-         "--tum-output", tum_out,
-         "--tum-gt-output", tum_gt_out,
-         "dataset", "--dataset", dataset_dir],
-        desc=f"Stage 4: macvo.exe trajectory ({label})",
-    )
-    return {"tum_run": str(tum_out), "tum_gt": str(tum_gt_out)}
+    seq = dataset_dir.name
+    tum_out = runs_dir / f"{seq}_{label}_tum.txt"
+    tum_gt_out = runs_dir / f"{seq}_{label}_gt_tum.txt"
+    cmd = [str(c) for c in (macvo_exe, "--no-viz", "--engine", plan_path.resolve(),
+                            "--tum-output", tum_out.resolve(), "--tum-gt-output", tum_gt_out.resolve(),
+                            "dataset", "--dataset", dataset_dir)]
+    print(f"\n>>> Stage 4: macvo.exe trajectory ({label}, {seq})\n    $ {' '.join(cmd)}", flush=True)
+    p = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
+    log = p.stdout + p.stderr
+    (runs_dir / f"{seq}_{label}_macvo.log").write_text(log, encoding="utf-8")
+    if p.returncode != 0:
+        print(log[-4000:], file=sys.stderr, flush=True)
+        raise RuntimeError(f"macvo.exe failed (exit {p.returncode}) on {seq}")
+    out = {"tum_run": str(tum_out), "tum_gt": str(tum_gt_out)}
+    m = re.search(r"Processed (\d+) frames in ([\d.]+)s \(([\d.]+) fps\)", log)
+    if m:
+        out.update(frames=int(m[1]), wall_s=float(m[2]), fps=float(m[3]))
+    m = re.search(r"Tracking: median ([\d.]+)ms\s+mean ([\d.]+)ms", log)
+    if m:
+        out.update(track_median_ms=float(m[1]), track_mean_ms=float(m[2]))
+    return out
 
 
-def stage_evo_compare(tum_run: Path, tum_gt: Path) -> dict:
-    """Compute APE + RPE via evo. Same metric as scripts/compare_trajectories.py."""
-    import copy
-    from evo.core import metrics as evo_metrics
-    from evo.core import sync
-    from evo.tools import file_interface
+def _read_tum(path: Path):
+    import numpy as np
+    rows = [list(map(float, ln.split())) for ln in path.read_text().splitlines()
+            if ln.strip() and not ln.startswith("#")]
+    a = np.asarray(rows, dtype=np.float64)
+    return a[:, 0], a[:, 1:4], a[:, 4:8]          # t, xyz, quat (qx qy qz qw)
 
-    ref = file_interface.read_tum_trajectory_file(str(tum_gt))
-    est = file_interface.read_tum_trajectory_file(str(tum_run))
-    ref_s, est_s = sync.associate_trajectories(ref, est, max_diff=0.05)
-    est_aligned = copy.deepcopy(est_s)
-    est_aligned.align(ref_s, correct_scale=False, correct_only_scale=False)
 
-    ape = evo_metrics.APE(evo_metrics.PoseRelation.translation_part)
-    ape.process_data((ref_s, est_aligned))
-    rpe = evo_metrics.RPE(evo_metrics.PoseRelation.translation_part,
-                          delta=1.0, delta_unit=evo_metrics.Unit.frames,
-                          rel_delta_tol=0.1, all_pairs=False)
-    rpe.process_data((ref_s, est_aligned))
-    a = ape.get_all_statistics()
-    r = rpe.get_all_statistics()
+def _quat_to_rot(q):
+    import numpy as np
+    x, y, z, w = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    n = np.sqrt(x * x + y * y + z * z + w * w)
+    x, y, z, w = x / n, y / n, z / n, w / n
+    R = np.empty((len(q), 3, 3))
+    R[:, 0, 0] = 1 - 2 * (y * y + z * z); R[:, 0, 1] = 2 * (x * y - z * w);     R[:, 0, 2] = 2 * (x * z + y * w)
+    R[:, 1, 0] = 2 * (x * y + z * w);     R[:, 1, 1] = 1 - 2 * (x * x + z * z); R[:, 1, 2] = 2 * (y * z - x * w)
+    R[:, 2, 0] = 2 * (x * z - y * w);     R[:, 2, 1] = 2 * (y * z + x * w);     R[:, 2, 2] = 1 - 2 * (x * x + y * y)
+    return R
+
+
+def stage_evo_compare(tum_run: Path, tum_gt: Path, max_diff: float = 0.05) -> dict:
+    """
+    APE / RPE (translation part) as evo computes them, in numpy: associate by timestamp
+    (max_diff), Umeyama SE(3) alignment of the estimate to ground truth (no scale), APE on
+    aligned positions, RPE over consecutive frame pairs. Implemented here to keep the
+    harness free of the evo/scipy dependency.
+    """
+    import numpy as np
+    t_ref, p_ref, q_ref = _read_tum(tum_gt)
+    t_est, p_est, q_est = _read_tum(tum_run)
+    # association: nearest ref timestamp for each est timestamp, within max_diff
+    j = np.searchsorted(t_ref, t_est)
+    j = np.clip(j, 1, len(t_ref) - 1)
+    j = np.where(np.abs(t_ref[j - 1] - t_est) <= np.abs(t_ref[j] - t_est), j - 1, j)
+    ok = np.abs(t_ref[j] - t_est) <= max_diff
+    pr, qr, pe, qe = p_ref[j[ok]], q_ref[j[ok]], p_est[ok], q_est[ok]
+    if len(pr) < 3:
+        raise RuntimeError(f"only {len(pr)} associated poses between {tum_gt} and {tum_run}")
+    # Umeyama (rigid): aligned_est = R @ est + t
+    mu_e, mu_r = pe.mean(0), pr.mean(0)
+    H = (pe - mu_e).T @ (pr - mu_r) / len(pe)
+    U, _, Vt = np.linalg.svd(H)
+    S = np.eye(3)
+    if np.linalg.det(U) * np.linalg.det(Vt) < 0:
+        S[2, 2] = -1
+    R = Vt.T @ S @ U.T
+    t = mu_r - R @ mu_e
+    pa = pe @ R.T + t
+    ape = np.linalg.norm(pr - pa, axis=1)
+    # RPE, delta = 1 frame: || trans( (Q_i^-1 Q_{i+1})^-1 (P_i^-1 P_{i+1}) ) ||
+    Rr, Re = _quat_to_rot(qr), _quat_to_rot(qe)
+    d_ref = np.einsum("nji,nj->ni", Rr[:-1], pr[1:] - pr[:-1])     # R_i^T (p_{i+1} - p_i)
+    d_est = np.einsum("nji,nj->ni", Re[:-1], pe[1:] - pe[:-1])
+    R_rel_ref = np.einsum("nji,njk->nik", Rr[:-1], Rr[1:])           # R_i^T R_{i+1}
+    rpe = np.linalg.norm(np.einsum("nji,nj->ni", R_rel_ref, d_est - d_ref), axis=1)
     return {
-        "APE_rmse": a["rmse"], "APE_mean": a["mean"], "APE_max": a["max"],
-        "RPE_rmse": r["rmse"], "RPE_mean": r["mean"],
+        "APE_rmse": float(np.sqrt(np.mean(ape ** 2))), "APE_mean": float(ape.mean()), "APE_max": float(ape.max()),
+        "RPE_rmse": float(np.sqrt(np.mean(rpe ** 2))), "RPE_mean": float(rpe.mean()),
+        "n_poses": int(len(pr)),
     }
 
 
 def stage_leaderboard_append(runs_dir: Path, label: str, plan_path: Path,
-                             metrics: dict) -> None:
+                             metrics: dict, seq: str = "plane_nose") -> None:
+    """One row per (plan label, sequence). Noise band = spread over rows of rebuilt plans."""
     runs_dir.mkdir(parents=True, exist_ok=True)
     leaderboard = runs_dir / "leaderboard.md"
     if not leaderboard.exists():
         leaderboard.write_text(
-            "| label | plan size MB | APE_rmse | APE_mean | APE_max | "
-            "RPE_rmse | RPE_mean |\n"
-            "|-------|-------------:|---------:|---------:|--------:|"
-            "---------:|---------:|\n"
+            "| label | seq | plan MB | APE_rmse | APE_mean | APE_max | "
+            "RPE_rmse | RPE_mean | fps | track_med_ms |\n"
+            "|-------|-----|--------:|---------:|---------:|--------:|"
+            "---------:|---------:|----:|-------------:|\n"
         )
     size_mb = plan_path.stat().st_size / (1024 * 1024)
     nan = float('nan')
     row = (
-        f"| {label} | {size_mb:.1f} "
+        f"| {label} | {seq} | {size_mb:.1f} "
         f"| {metrics.get('APE_rmse', nan):.4f} "
         f"| {metrics.get('APE_mean', nan):.4f} "
         f"| {metrics.get('APE_max', nan):.4f} "
         f"| {metrics.get('RPE_rmse', nan):.4f} "
-        f"| {metrics.get('RPE_mean', nan):.4f} |\n"
+        f"| {metrics.get('RPE_mean', nan):.4f} "
+        f"| {metrics.get('fps', nan):.2f} "
+        f"| {metrics.get('track_median_ms', nan):.1f} |\n"
     )
     with leaderboard.open("a") as f:
         f.write(row)
@@ -309,7 +360,7 @@ def stage_leaderboard_append(runs_dir: Path, label: str, plan_path: Path,
 
 def evaluate_one(plan_path: Path, label: str, onnx_path: Path,
                  sample_left: Path | None, sample_right: Path | None,
-                 macvo_exe: Path | None, dataset_dir: Path | None,
+                 macvo_exe: Path | None, dataset_dirs: list[Path] | None,
                  runs_dir: Path, input_shape: tuple,
                  skip: set[int]) -> dict:
     print(f"\n========================================")
@@ -319,7 +370,7 @@ def evaluate_one(plan_path: Path, label: str, onnx_path: Path,
     metrics: dict = {"label": label, "plan": str(plan_path)}
 
     have_samples = sample_left is not None and sample_right is not None
-    have_runtime = macvo_exe is not None and dataset_dir is not None
+    have_runtime = macvo_exe is not None and bool(dataset_dirs)
 
     do_numerical = have_samples and ({1, 2, 3} - skip)
     if have_samples:
@@ -341,13 +392,14 @@ def evaluate_one(plan_path: Path, label: str, onnx_path: Path,
               file=sys.stderr)
 
     if have_runtime and 4 not in skip:
-        traj = stage_trajectory(plan_path, label, macvo_exe,
-                                dataset_dir, runs_dir)
-        metrics.update(stage_evo_compare(Path(traj["tum_run"]),
-                                         Path(traj["tum_gt"])))
-        if 5 not in skip:
-            stage_leaderboard_append(runs_dir, label, plan_path, metrics)
-    elif 4 not in skip and (macvo_exe is None or dataset_dir is None):
+        for dataset_dir in dataset_dirs:
+            traj = stage_trajectory(plan_path, label, macvo_exe, dataset_dir, runs_dir)
+            seq_metrics = {k: v for k, v in traj.items() if k not in ("tum_run", "tum_gt")}
+            seq_metrics.update(stage_evo_compare(Path(traj["tum_run"]), Path(traj["tum_gt"])))
+            metrics[dataset_dir.name] = seq_metrics
+            if 5 not in skip:
+                stage_leaderboard_append(runs_dir, label, plan_path, seq_metrics, seq=dataset_dir.name)
+    elif 4 not in skip and (macvo_exe is None or not dataset_dirs):
         print("Stage 4 skipped (need both --macvo-exe and --dataset)",
               flush=True)
 
@@ -375,7 +427,8 @@ def main() -> int:
     p.add_argument("--sample-left", type=Path)
     p.add_argument("--sample-right", type=Path)
     p.add_argument("--macvo-exe", type=Path)
-    p.add_argument("--dataset", type=Path)
+    p.add_argument("--dataset", type=Path, nargs="*",
+                   help="One or more sequence dirs (default: plane_nose, plane_tail1)")
     p.add_argument("--runs-dir", type=Path, default=THIS_DIR / "runs")
     p.add_argument("--input-shape", default="1,3,704,704")
     p.add_argument("--skip", type=int, nargs="*", default=[],
@@ -391,14 +444,20 @@ def main() -> int:
                                    "SAMPLE_RIGHT", AUTO_SEARCH_SAMPLE_RIGHT)
     macvo_exe = resolve_default(args.macvo_exe, config, "macvo_exe",
                                 "MACVO_EXE", AUTO_SEARCH_MACVO_EXE)
-    dataset = resolve_default(args.dataset, config, "dataset",
-                              "DATASET", AUTO_SEARCH_DATASET)
+    if args.dataset:
+        datasets = [Path(d) for d in args.dataset]
+    else:
+        cfg_ds = config.get("dataset") or os.environ.get(f"{ENV_PREFIX}DATASET")
+        if cfg_ds:
+            datasets = [Path(cfg_ds)] if isinstance(cfg_ds, str) else [Path(d) for d in cfg_ds]
+        else:
+            datasets = [Path(d) for d in AUTO_SEARCH_DATASET if Path(d).exists()]
 
     print("Resolved paths:")
     print(f"  sample_left  = {sample_left}")
     print(f"  sample_right = {sample_right}")
     print(f"  macvo_exe    = {macvo_exe}")
-    print(f"  dataset      = {dataset}")
+    print(f"  datasets     = {[str(d) for d in datasets]}")
 
     plans = expand_plan_arg(args.plan)
     if not plans:
@@ -420,7 +479,7 @@ def main() -> int:
         results.append(evaluate_one(
             plan_path=plan, label=label, onnx_path=args.onnx,
             sample_left=sample_left, sample_right=sample_right,
-            macvo_exe=macvo_exe, dataset_dir=dataset,
+            macvo_exe=macvo_exe, dataset_dirs=datasets,
             runs_dir=args.runs_dir, input_shape=input_shape, skip=skip,
         ))
 
