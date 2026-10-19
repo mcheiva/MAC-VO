@@ -83,10 +83,10 @@ class LocallyGroupedAttnRPEContext(nn.Module):
         x_qk = x_qk.reshape(B, _h, self.ws, _w, self.ws, C_qk).transpose(2, 3)
 
 
-        coords = coords_grid(B, self.ws, self.ws, x.device, x.dtype)
-        coords = coords.view(B, 2, -1).permute(0, 2, 1)
-        coords_enc = LinearPositionEmbeddingSine(coords, dim=C_qk).view(B, self.ws, self.ws, C_qk)   
-        # coords_enc:   B, ws, ws, C
+        coords = coords_grid(1, self.ws, self.ws, x.device, x.dtype)
+        coords = coords.view(1, 2, -1).permute(0, 2, 1)
+        coords_enc = LinearPositionEmbeddingSine(coords, dim=C_qk).view(1, self.ws, self.ws, C_qk)
+        # coords_enc:   1, ws, ws, C        (same for every window and batch row; broadcast)
         # x:            B, _h, _w, self.ws, self.ws, C
         x_qk = x_qk + coords_enc[:, None, None, :, :, :]
 
@@ -177,10 +177,10 @@ class GlobalSubSampleAttnRPEContext(nn.Module):
         x = x.view(B, -1, C)
         x_qk = x_qk.view(B, -1, C_qk)
 
-        coords = coords_grid(B, *padded_size, x.device, x.dtype)
-        coords = coords.view(B, 2, -1).permute(0, 2, 1)
-        coords_enc = LinearPositionEmbeddingSine(coords, dim=C_qk)   
-        # coords_enc:   B, Hp*Wp, C
+        coords = coords_grid(1, *padded_size, x.device, x.dtype)
+        coords = coords.view(1, 2, -1).permute(0, 2, 1)
+        coords_enc = LinearPositionEmbeddingSine(coords, dim=C_qk)
+        # coords_enc:   1, Hp*Wp, C          (broadcast over B)
         # x:            B, Hp*Wp, C
         q = self.q(x_qk + coords_enc).reshape(B, padded_N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
 
@@ -191,8 +191,8 @@ class GlobalSubSampleAttnRPEContext(nn.Module):
         x = self.norm(x)
         x_qk = self.norm(x_qk)
 
-        coords = coords_grid(B, padded_size[0] // self.sr_ratio, padded_size[1] // self.sr_ratio, x.device, x.dtype)
-        coords = coords.view(B, 2, -1).permute(0, 2, 1) * self.sr_ratio
+        coords = coords_grid(1, padded_size[0] // self.sr_ratio, padded_size[1] // self.sr_ratio, x.device, x.dtype)
+        coords = coords.view(1, 2, -1).permute(0, 2, 1) * self.sr_ratio
         
         # align the coordinate of local and global
         coords_enc = LinearPositionEmbeddingSine(coords, dim=C)

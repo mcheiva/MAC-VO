@@ -18,6 +18,27 @@ def initialize_flow(img):
     return mean0, mean1
 
 
+def attend_one_query(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads: int, head_dim: int) -> torch.Tensor:
+    """
+    == MultiHeadAttention(q, k, v) for a single query per row: q [N, 1, C], k/v [N, T, C].
+    Written as broadcast multiply + reduce instead of batched 1xT matmuls, which TensorRT
+    lowers to a gemv kernel that runs far below memory bandwidth for this shape.
+    `heads` and `head_dim` must be Python ints: a traced shape exports as Pow + Cast on a
+    shape scalar, which the TensorRT parser rejects.
+    """
+    N, T, C = k.shape
+    qh = (q * (head_dim ** -0.5)).view(N, 1, heads, head_dim)
+    kh = k.view(N, T, heads, head_dim)
+    vh = v.view(N, T, heads, head_dim)
+    dots = (qh * kh).sum(-1)                          # [N, T, h]
+    # sum_j e_j v_j / sum_j e_j: the same value as a softmax-weighted average, but without a
+    # Softmax node TensorRT does not pattern-match the block into its fused-MHA kernel.
+    e = torch.exp(dots - dots.amax(dim=1, keepdim=True))        # [N, T, h]
+    num = (e.unsqueeze(-1) * vh).sum(1)                          # [N, h, hd]
+    den = e.sum(dim=1).unsqueeze(-1)                             # [N, h, 1]
+    return (num / den).reshape(N, 1, C)
+
+
 class CrossAttentionLayer(nn.Module):
     def __init__(self, qk_dim: int, v_dim: int, query_token_dim: int,
                  tgt_token_dim: int, num_heads: int =8,
@@ -69,7 +90,8 @@ class CrossAttentionLayer(nn.Module):
         q         = self.norm1(query)
         q         = self.q(q + query_coord_enc)
 
-        x         = self.multi_head_attn(q, k, v)
+        heads = self.multi_head_attn.heads
+        x = attend_one_query(q, k, v, heads, self.dim // heads)
         x         = self.proj(torch.cat([x, query],dim=2))
         x         = query + self.proj_drop(x)
 

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch import einsum
 
 
 class BroadMultiHeadAttention(nn.Module):
@@ -14,7 +13,7 @@ class BroadMultiHeadAttention(nn.Module):
         _, Q_len, _ = Q.shape
         B, K_len, _ = K.shape
 
-        q = Q.view(1, Q_len, self.heads, self.head_dim).permute(0, 2, 1, 3).repeat(B, 1, 1, 1)
+        q = Q.view(1, Q_len, self.heads, self.head_dim).permute(0, 2, 1, 3).expand(B, -1, -1, -1)
         k = K.view(B, K_len, self.heads, self.head_dim).permute(0, 2, 1, 3)
         v = V.view(B, K_len, self.heads, self.head_dim).permute(0, 2, 1, 3)
 
@@ -51,7 +50,7 @@ class MultiHeadAttention(nn.Module):
         K_d = K_heads_d // self.heads
         K = K.view(K_b, K_j, self.heads, K_d).permute(0, 2, 1, 3)
 
-        dots = einsum('bhid, bhjd -> bhij', Q, K) * self.scale # (b hw) heads 1 pointnum
+        dots = torch.matmul(Q, K.transpose(-1, -2)) * self.scale   # (b hw) heads i j
         attn = self.attend(dots)
 
         # V = rearrange(V, 'b j (heads d) -> b heads j d', heads=self.heads)
@@ -59,7 +58,7 @@ class MultiHeadAttention(nn.Module):
         V_d = V_heads_d // self.heads
         V = V.view(V_b, V_j, self.heads, V_d).permute(0, 2, 1, 3)
 
-        out = einsum('bhij, bhjd -> bhid', attn, V)
+        out = torch.matmul(attn, V)
         
         # out = rearrange(out, 'b heads hw d -> b hw (heads d)', b=B, hw=HW)
         out_b, out_heads, out_hw, out_d = out.shape

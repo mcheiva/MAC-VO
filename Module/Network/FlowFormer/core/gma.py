@@ -71,11 +71,10 @@ class Attention(nn.Module):
         
         q = self.scale * q
 
-        sim = einsum('b h x y d, b h u v d -> b h x y u v', q, k)
-
-        # sim = rearrange(sim, 'b h x y u v -> b h (x y) (u v)')
-        sim_b, sim_h, sim_x, sim_y, sim_u, sim_v = sim.shape
-        sim = sim.view(sim_b, sim_h, sim_x * sim_y, sim_u * sim_v)
+        # sim[b, h, (x y), (u v)] = <q[b,h,x,y,:], k[b,h,u,v,:]> as a MatMul (no efficient Einsum in TensorRT)
+        q = q.reshape(q_b, q_h, q_x * q_y, q_d)
+        k = k.reshape(k_b, k_h, k_x * k_y, k_d)
+        sim = torch.matmul(q, k.transpose(-1, -2))
         
         attn = sim.softmax(dim=-1)
 

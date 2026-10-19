@@ -15,7 +15,6 @@ class InputPadder:
             self._pad = [pad_wd//2, pad_wd - pad_wd//2, 0, pad_ht]
 
     def pad(self, *inputs):
-        print(self._pad)
         if sum(self._pad) == 0: return inputs
         return [F.pad(x, self._pad, mode='replicate') for x in inputs]
 
@@ -25,22 +24,31 @@ class InputPadder:
         return x[..., c[0]:c[1], c[2]:c[3]]
 
 def bilinear_sampler(img: torch.Tensor, coords: torch.Tensor) -> torch.Tensor:
-    """ Wrapper for grid_sample, uses pixel coordinates """
+    """
+    Wrapper for grid_sample, uses pixel coordinates (..., 2) = (x, y).
+    Normalisation is written as whole-tensor elementwise ops (same operation order as the
+    per-channel form, so bit-identical); in-place slice assignment exports as ONNX ScatterND.
+    """
     H, W = img.shape[-2:]
-    
-    coords[..., 0] = 2 * coords[..., 0] / (W-1) - 1
-    coords[..., 1] = 2 * coords[..., 1] / (H-1) - 1
-    img = F.grid_sample(img, coords, align_corners=True)
+    wh = torch.tensor([W - 1, H - 1], device=coords.device, dtype=coords.dtype)
+    return F.grid_sample(img, (2 * coords) / wh - 1, align_corners=True)
 
-    return img
+_GRID_CACHE: dict = {}
+
 
 def coords_grid(batch: int, ht: int, wd: int, device: torch.device, dtype: torch.dtype):
-    idx_0 = torch.arange(0, ht, device=device, dtype=torch.float32)
-    idx_1 = torch.arange(0, wd, device=device, dtype=torch.float32)
-    coords = torch.meshgrid(
-        idx_0.to(dtype=dtype),
-        idx_1.to(dtype=dtype),
-        indexing="ij"
-    )
-    coords = torch.stack((coords[1], coords[0]), dim=0)
-    return coords.unsqueeze(0).repeat(batch, 1, 1, 1)
+    """
+    [batch, 2, ht, wd] pixel coordinates (x, y). Built once per (ht, wd) with numpy and
+    cached: inside torch.onnx tracing the cached tensor is a constant, so the sine position
+    embeddings derived from it fold into initializers instead of Range/Sin/Cos at runtime.
+    """
+    import numpy as np
+    key = (int(ht), int(wd), str(device), dtype)
+    g = _GRID_CACHE.get(key)
+    if g is None:
+        ys, xs = np.meshgrid(np.arange(int(ht), dtype=np.float32), np.arange(int(wd), dtype=np.float32), indexing="ij")
+        # torch.tensor(..., device=) creates the constant on the device directly; a traced .to() on a
+        # CPU constant makes torch.onnx's constant folder mix cpu/cuda tensors and fail.
+        g = torch.tensor(np.stack((xs, ys), axis=0), device=device, dtype=dtype)
+        _GRID_CACHE[key] = g
+    return g.unsqueeze(0).repeat(batch, 1, 1, 1)
