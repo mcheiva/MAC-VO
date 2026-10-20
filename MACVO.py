@@ -17,7 +17,8 @@ from Utility.Timer import Timer
 
 
 def VisualizeRerunCallback(frame: StereoFrame, system: MACVO, pb: ColoredTqdm):
-    rr.set_time_sequence("frame_idx", frame.frame_idx)
+    if hasattr(rr, "set_time"): rr.set_time("frame_idx", sequence=frame.frame_idx)   # rerun >= 0.23
+    else:                       rr.set_time_sequence("frame_idx", frame.frame_idx)
     
     # Non-key frame does not need visualization
     if system.graph.frames.data["need_interp"][-1]: return

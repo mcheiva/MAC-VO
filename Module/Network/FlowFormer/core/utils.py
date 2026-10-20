@@ -23,15 +23,22 @@ class InputPadder:
         c = [self._pad[2], ht-self._pad[3], self._pad[0], wd-self._pad[1]]
         return x[..., c[0]:c[1], c[2]:c[3]]
 
+_WH_CACHE: dict = {}
+
+
 def bilinear_sampler(img: torch.Tensor, coords: torch.Tensor) -> torch.Tensor:
     """
     Wrapper for grid_sample, uses pixel coordinates (..., 2) = (x, y).
     Normalisation is written as whole-tensor elementwise ops (same operation order as the
     per-channel form, so bit-identical); in-place slice assignment exports as ONNX ScatterND.
+    The [W-1, H-1] divisor is cached: creating it is a host-to-device copy, which CUDA graph
+    capture (CUDAGraph_FlowFormerCovFrontend) forbids; the warm-up runs fill the cache.
     """
     H, W = img.shape[-2:]
-    wh = torch.tensor([W - 1, H - 1], device=coords.device, dtype=coords.dtype)
-    return F.grid_sample(img, (2 * coords) / wh - 1, align_corners=True)
+    key = (H, W, coords.device, coords.dtype)
+    if key not in _WH_CACHE:
+        _WH_CACHE[key] = torch.tensor([W - 1, H - 1], device=coords.device, dtype=coords.dtype)
+    return F.grid_sample(img, (2 * coords) / _WH_CACHE[key] - 1, align_corners=True)
 
 _GRID_CACHE: dict = {}
 
