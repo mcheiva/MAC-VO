@@ -167,7 +167,10 @@ class MemoryCovDecoder(MemoryDecoder):
         self.decoder_layer      = self.decoder_layer.to(dtype=self.decoder_dtype)
         self.flow_token_encoder = self.flow_token_encoder.to(dtype=self.decoder_dtype)
         self.update_block       = self.update_block.to(dtype=self.decoder_dtype)
-        if self.recurrent:
+        # cov_fp32: the recurrent covariance branch keeps fp32 weights while the rest of the decoder runs in
+        # decoder_dtype - deployment-precision training: the frozen flow path computes as deployed, the trained
+        # branch keeps fp32 master weights (FusedGRUPair casts them to the activation dtype).
+        if self.recurrent and not getattr(self.cfg, "cov_fp32", False):
             self.cov_update     = self.cov_update.to(dtype=self.decoder_dtype)
         # Diagnostics: when set to a list, forward appends the mean |delta_flow| of every
         # iteration. Leave None for export.
@@ -175,6 +178,11 @@ class MemoryCovDecoder(MemoryDecoder):
 
     @property
     def recurrent(self) -> bool: return hasattr(self, "cov_update")
+
+    @property
+    def cov_dtype(self) -> torch.dtype:
+        """Weight dtype of the recurrent covariance branch (decoder_dtype unless cov_fp32)."""
+        return self.cov_update.cov_head.conv1.weight.dtype
 
     @property
     def cov_cues(self) -> bool:
@@ -261,9 +269,9 @@ class MemoryCovDecoder(MemoryDecoder):
             if self.cov_cues:
                 # Ambiguity of this iteration's 9x9 correlation window and the size of its flow update
                 cues = torch.cat([correlation_peak_stats(cost_forward), delta_flow.float()], dim=1).to(fcov_net.dtype)
-                delta_cov = self.cov_update.cov_head(torch.cat([fcov_net, cues], dim=1))
+                delta_cov = self.cov_update.cov_head(torch.cat([fcov_net, cues], dim=1).to(self.cov_dtype))
             elif self.recurrent:
-                delta_cov = self.cov_update.cov_head(fcov_net)
+                delta_cov = self.cov_update.cov_head(fcov_net.to(self.cov_dtype))
 
             # State propagation must happen every iteration so the next iter
             # consumes the updated coords (matches the original code).
@@ -284,7 +292,7 @@ class MemoryCovDecoder(MemoryDecoder):
                 flow_predictions.append(flow_up)
 
                 if self.recurrent:
-                    cov_mask = self.cov_update.forward_mask(fcov_net).to(dtype=torch.float32)
+                    cov_mask = self.cov_update.forward_mask(fcov_net.to(self.cov_dtype)).to(dtype=torch.float32)
                     cov_up   = self.upsample_flow(cov_coords1 - cov_coords0, cov_mask)
                     cov_predictions.append(cov_up)
 

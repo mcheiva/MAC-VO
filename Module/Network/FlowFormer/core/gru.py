@@ -70,12 +70,14 @@ class FusedGRUPair:
         return [getattr(g, n) for g in self.grus for n in self.dirs[d]]
 
     def precompute(self, inp: torch.Tensor) -> list[torch.Tensor]:
-        """Loop-invariant term per direction: conv(inp, W[:, inp]) + bias -> [B, 768, H, W]."""
+        """Loop-invariant term per direction: conv(inp, W[:, inp]) + bias -> [B, 768, H, W].
+        Weights are cast to the activation dtype (a no-op unless one GRU keeps fp32 master weights while the
+        decoder runs in reduced precision, as in deployment-precision training)."""
         out = []
         for d in range(2):
             convs = self._convs(d)
-            w = torch.cat([c.weight[:, self.X0:self.A0] for c in convs], 0)
-            b = torch.cat([c.bias for c in convs], 0)
+            w = torch.cat([c.weight[:, self.X0:self.A0].to(inp.dtype) for c in convs], 0)
+            b = torch.cat([c.bias.to(inp.dtype) for c in convs], 0)
             out.append(F.conv2d(inp, w, b, padding=convs[0].padding))
         return out
 
@@ -83,16 +85,16 @@ class FusedGRUPair:
                    p: torch.Tensor) -> tuple[torch.Tensor, ...]:
         convs = self._convs(d)
         pad = convs[0].padding
-        w_ab = torch.cat([c.weight[:, self.A0:] for c in convs], 0)
+        w_ab = torch.cat([c.weight[:, self.A0:].to(x_ab.dtype) for c in convs], 0)
         x = F.conv2d(x_ab, w_ab, None, padding=pad) + p
         new_h = []
         for g, (gru, h) in enumerate(zip(self.grus, hs)):
             cz, cr, cq = convs[3 * g: 3 * g + 3]
             o = 384 * g
-            zr = F.conv2d(h, torch.cat([cz.weight[:, :self.H], cr.weight[:, :self.H]], 0), None, padding=pad)
+            zr = F.conv2d(h, torch.cat([cz.weight[:, :self.H], cr.weight[:, :self.H]], 0).to(h.dtype), None, padding=pad)
             z = torch.sigmoid(zr[:, :self.H] + x[:, o:o + 128])
             r = torch.sigmoid(zr[:, self.H:] + x[:, o + 128:o + 256])
-            q = torch.tanh(F.conv2d(r * h, cq.weight[:, :self.H], None, padding=pad) + x[:, o + 256:o + 384])
+            q = torch.tanh(F.conv2d(r * h, cq.weight[:, :self.H].to(h.dtype), None, padding=pad) + x[:, o + 256:o + 384])
             new_h.append((1 - z) * h + z * q)
         return tuple(new_h)
 

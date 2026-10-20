@@ -21,7 +21,7 @@ from .utils import (
     AssertLiteralType,
     IndexedDataset,
     stereo_target,
-    get_scheduler, get_optimizer
+    get_datatype, get_scheduler, get_optimizer
 )
 
 
@@ -52,7 +52,10 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     train_mode: T_TrainType = modelcfg.training_mode
     AssertLiteralType(train_mode, T_TrainType)
     
-    model = build_flowformer(modlecfg, torch.float32, torch.float32)
+    # encoder_dtype / decoder_dtype: run the frozen network in the deployment precision (MACVO_Fast and
+    # Export.py --mode fast use fp16 / bf16); with latentcostformer.cov_fp32 the trained branch stays fp32.
+    model = build_flowformer(modlecfg, get_datatype(modlecfg.get("encoder_dtype", "fp32")),
+                             get_datatype(modlecfg.get("decoder_dtype", "fp32")))
     if modlecfg.restore_ckpt:
         model.load_ddp_state_dict(torch.load(modlecfg.restore_ckpt, weights_only=True))
 
