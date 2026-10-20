@@ -205,6 +205,8 @@ def main():
     parser.add_argument("--batch_size", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-stereo", action="store_true")
+    parser.add_argument("--precision", choices=("fp32", "fast"), default="fp32",
+                        help="fast = the deployed fp16 encoder / bf16 decoder (MACVO_Fast, Export.py --mode fast)")
     args = parser.parse_args()
 
     cfg, _ = load_config(args.config)
@@ -216,7 +218,7 @@ def main():
 
     models = {}
     for ckpt in args.ckpt:
-        model = build_flowformer(modelcfg, torch.float32, torch.float32)
+        model = build_flowformer(modelcfg, *{"fp32": (torch.float32, torch.float32), "fast": (torch.float16, torch.bfloat16)}[args.precision])
         model.load_ddp_state_dict(torch.load(ckpt, weights_only=True))
         models[ckpt] = model.cuda().eval()
     results = evaluate(models, seqs, pairs, args.batch_size, not args.no_stereo, args.seed)

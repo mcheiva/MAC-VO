@@ -181,6 +181,7 @@ def main():
     ap.add_argument("--max_depth", default="auto", type=lambda v: v if v == "auto" else float(v))
     ap.add_argument("--max_depth_cov", type=float, default=250.)
     ap.add_argument("--max_match_cov", type=float, default=100.)
+    ap.add_argument("--precision", choices=("fp32", "fast"), default="fp32", help="fast = deployed fp16 / bf16")
     args = ap.parse_args()
     sel_cfg = SimpleNamespace(**{k: getattr(args, k) for k in ("kernel_size", "mask_width", "max_depth", "max_depth_cov", "max_match_cov")})
 
@@ -190,7 +191,7 @@ def main():
     pairs = draw_pairs(seqs, args.pairs, seed=0)
 
     for ckpt in args.ckpt:
-        model = build_flowformer(modelcfg, torch.float32, torch.float32)
+        model = build_flowformer(modelcfg, *{"fp32": (torch.float32, torch.float32), "fast": (torch.float16, torch.bfloat16)}[args.precision])
         model.load_ddp_state_dict(torch.load(ckpt, weights_only=True))
         model = model.cuda().eval()
         tag = "shipped" if ckpt.endswith("MACVO_FrontendCov.pth") else Path(ckpt).stem
