@@ -91,7 +91,7 @@ class FlowFormerCov(FlowFormer):
             cvt_ckpt = OrderedDict((k, v) for k, v in cvt_ckpt.items() if not k.startswith(self.COV_UPDATE))
             missing, unexpected = self.load_state_dict(cvt_ckpt, strict=False)
             assert not unexpected and all(k.startswith(self.SS_HEAD) for k in missing), (missing, unexpected)
-            if missing:
+            if self.SS_HEAD + "out.weight" in missing:
                 print("[FlowFormerCov] single-shot covariance head initialised fresh (not in the checkpoint)")
             return
 

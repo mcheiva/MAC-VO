@@ -97,6 +97,9 @@ class SingleShotCovHead(nn.Module):
         with torch.no_grad():
             self.out.bias.copy_(torch.tensor([-0.7, -0.7, 0., 3.])[:self.out.out_channels])
         self.register_buffer("outlier_var", torch.tensor(outlier_sigma ** 2))
+        # What consumers get from the inlier head (see `effective`): 0 = the moment-matched covariance,
+        # tau > 0 = the inlier Sigma where p >= tau and outlier_var I elsewhere.
+        self.register_buffer("gate_tau", torch.tensor(0.))
 
     @property
     def inlier(self) -> bool: return self.out.out_channels == 4
@@ -115,7 +118,12 @@ class SingleShotCovHead(nn.Module):
         return self.out(self.body(x))
 
     def effective(self, c: torch.Tensor) -> torch.Tensor:
-        """Raw output -> Cholesky parameters of the covariance consumers use (moment-matched for `inlier`)."""
+        """
+        Raw output -> Cholesky parameters of the covariance consumers use. For the inlier head either the
+        moment-matched p Sigma + (1 - p) outlier_var I (gate_tau = 0), or gated: the inlier Sigma where
+        p >= gate_tau and outlier_var I elsewhere, so the pose graph sees Sigma uninflated and the selector
+        drops likely outliers. Both are computed and selected with tensor ops (no host sync, graph-capturable).
+        """
         if not self.inlier:
             return c
         e, p = cov_entries(c[:, :3]), torch.sigmoid(c[:, 3:4])
@@ -124,7 +132,10 @@ class SingleShotCovHead(nn.Module):
         l11 = uu.sqrt()
         l21 = p * e[:, 2:3] / l11
         l22 = (vv - l21 * l21).clamp(min=1e-12).sqrt()
-        return torch.cat([l11.log(), l22.log(), l21], dim=1)
+        moment = torch.cat([l11.log(), l22.log(), l21], dim=1)
+        log_sigma_out = 0.5 * self.outlier_var.log() * torch.ones_like(p)
+        gated = torch.where(p >= self.gate_tau, c[:, :3], torch.cat([log_sigma_out, log_sigma_out, torch.zeros_like(p)], dim=1))
+        return torch.where(self.gate_tau > 0, gated, moment)
 
 
 class MemoryCovDecoder(MemoryDecoder):
