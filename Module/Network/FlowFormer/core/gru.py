@@ -57,11 +57,13 @@ class FusedGRUPair:
     Fused output layout (768): [a_z, a_r, a_q, b_z, b_r, b_q].
     Partial sums are rounded to the working dtype before the add, so reduced-precision
     results are not bit-identical to the single-conv form (fp32 agrees to rounding).
+    With gru_b = None the same formulation runs the flow GRU alone (the single-shot covariance
+    head has no GRU of its own); step then returns (ha, None).
     """
     H, X0, A0 = 128, 128, 256   # channel offsets inside the 512-wide input
 
-    def __init__(self, gru_a: SepConvGRU, gru_b: SepConvGRU):
-        self.grus = (gru_a, gru_b)
+    def __init__(self, gru_a: SepConvGRU, gru_b: SepConvGRU | None):
+        self.grus = (gru_a,) if gru_b is None else (gru_a, gru_b)
         self.dirs = (("convz1", "convr1", "convq1"), ("convz2", "convr2", "convq2"))
 
     def _convs(self, d: int) -> list[nn.Conv2d]:
@@ -77,14 +79,14 @@ class FusedGRUPair:
             out.append(F.conv2d(inp, w, b, padding=convs[0].padding))
         return out
 
-    def _direction(self, d: int, ha: torch.Tensor, hb: torch.Tensor, x_ab: torch.Tensor,
-                   p: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def _direction(self, d: int, hs: tuple[torch.Tensor, ...], x_ab: torch.Tensor,
+                   p: torch.Tensor) -> tuple[torch.Tensor, ...]:
         convs = self._convs(d)
         pad = convs[0].padding
         w_ab = torch.cat([c.weight[:, self.A0:] for c in convs], 0)
         x = F.conv2d(x_ab, w_ab, None, padding=pad) + p
         new_h = []
-        for g, (gru, h) in enumerate(zip(self.grus, (ha, hb))):
+        for g, (gru, h) in enumerate(zip(self.grus, hs)):
             cz, cr, cq = convs[3 * g: 3 * g + 3]
             o = 384 * g
             zr = F.conv2d(h, torch.cat([cz.weight[:, :self.H], cr.weight[:, :self.H]], 0), None, padding=pad)
@@ -92,14 +94,15 @@ class FusedGRUPair:
             r = torch.sigmoid(zr[:, self.H:] + x[:, o + 128:o + 256])
             q = torch.tanh(F.conv2d(r * h, cq.weight[:, :self.H], None, padding=pad) + x[:, o + 256:o + 384])
             new_h.append((1 - z) * h + z * q)
-        return new_h[0], new_h[1]
+        return tuple(new_h)
 
-    def step(self, ha: torch.Tensor, hb: torch.Tensor, x_ab: torch.Tensor,
-             pre: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
-        """One GRU update of both hidden states. x_ab = cat[a, b]; pre from `precompute`."""
-        ha, hb = self._direction(0, ha, hb, x_ab, pre[0])   # horizontal (1x5)
-        ha, hb = self._direction(1, ha, hb, x_ab, pre[1])   # vertical   (5x1), same x
-        return ha, hb
+    def step(self, ha: torch.Tensor, hb: torch.Tensor | None, x_ab: torch.Tensor,
+             pre: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor | None]:
+        """One GRU update of both hidden states (or of ha alone). x_ab = cat[a, b]; pre from `precompute`."""
+        hs = (ha,) if hb is None else (ha, hb)
+        hs = self._direction(0, hs, x_ab, pre[0])   # horizontal (1x5)
+        hs = self._direction(1, hs, x_ab, pre[1])   # vertical   (5x1), same x
+        return hs[0], (hs[1] if len(hs) == 2 else None)
 
 
 class BasicMotionEncoder(nn.Module):

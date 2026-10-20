@@ -14,6 +14,7 @@ def cov_entries(c: torch.Tensor) -> torch.Tensor:
     """
     if c.size(1) == 2:
         return torch.exp(2 * c)
+    assert c.size(1) == 3, "cov_entries takes 2 (log sigma) or 3 (Cholesky) channels"
     l11, l22, l21 = torch.exp(c[:, 0:1]), torch.exp(c[:, 1:2]), c[:, 2:3]
     return torch.cat([l11 * l11, l21 * l21 + l22 * l22, l11 * l21], dim=1)
 
@@ -68,10 +69,73 @@ class CovUpdateBlock(nn.Module):
         return covs_net, delta_covs, self.forward_mask(covs_net)
 
 
+class SingleShotCovHead(nn.Module):
+    """
+    Covariance head that runs once, after the decoder loop, on what the flow decoder has computed: the final
+    flow-GRU state (it carries the iteration history), the last motion features, the context, the 9x9
+    correlation window at the final flow with its peak statistics, the flow and the last two flow updates.
+    Replaces the recurrent branch (a second GRU and CovHead on every iteration, ~13% of the engine).
+
+    Outputs Cholesky parameters (c1, c2, c3) at 1/8 resolution, upsampled with the flow's convex mask. With
+    `inlier`, a fourth channel is the logit of p, the probability that the error is drawn from N(0, Sigma)
+    rather than from the broad outlier term N(0, outlier_sigma^2 I); training uses the mixture likelihood
+    and consumers get the moment-matched covariance p Sigma + (1 - p) outlier_sigma^2 I (`effective`).
+    Runs in fp32 whatever the decoder dtype.
+    """
+    def __init__(self, corr_dim: int = 81, inlier: bool = False, outlier_sigma: float = 32.):
+        super().__init__()
+        in_dim = 128 + 256 + 128 + corr_dim + 3 + 2 + 2 + 2
+        self.body = nn.Sequential(
+            nn.Conv2d(in_dim, 192, 1), nn.ReLU(inplace=True),
+            nn.Conv2d(192, 128, 3, padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, 3, padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 64, 3, padding=1), nn.ReLU(inplace=True),
+        )
+        self.out = nn.Conv2d(64, 4 if inlier else 3, 3, padding=1)
+        # Start from a constant prediction: sigma = 0.5 px, no correlation, p = 0.95.
+        nn.init.zeros_(self.out.weight)
+        with torch.no_grad():
+            self.out.bias.copy_(torch.tensor([-0.7, -0.7, 0., 3.])[:self.out.out_channels])
+        self.register_buffer("outlier_var", torch.tensor(outlier_sigma ** 2))
+
+    @property
+    def inlier(self) -> bool: return self.out.out_channels == 4
+
+    @staticmethod
+    def peak_stats(corr: torch.Tensor) -> torch.Tensor:
+        """Best correlation, its margin over the second best, and the entropy of the softmax over the window."""
+        top2 = corr.topk(2, dim=1).values
+        logp = corr.log_softmax(dim=1)
+        return torch.cat([top2[:, :1], top2[:, :1] - top2[:, 1:], -(logp.exp() * logp).sum(dim=1, keepdim=True)], dim=1)
+
+    def forward(self, net, motion, context, corr, flow, delta, prev_delta) -> torch.Tensor:
+        corr = corr.float()
+        x = torch.cat([net.float(), motion.float(), context.float(), corr, self.peak_stats(corr),
+                       flow / 8, delta, prev_delta], dim=1)
+        return self.out(self.body(x))
+
+    def effective(self, c: torch.Tensor) -> torch.Tensor:
+        """Raw output -> Cholesky parameters of the covariance consumers use (moment-matched for `inlier`)."""
+        if not self.inlier:
+            return c
+        e, p = cov_entries(c[:, :3]), torch.sigmoid(c[:, 3:4])
+        uu = p * e[:, 0:1] + (1 - p) * self.outlier_var
+        vv = p * e[:, 1:2] + (1 - p) * self.outlier_var
+        l11 = uu.sqrt()
+        l21 = p * e[:, 2:3] / l11
+        l22 = (vv - l21 * l21).clamp(min=1e-12).sqrt()
+        return torch.cat([l11.log(), l22.log(), l21], dim=1)
+
+
 class MemoryCovDecoder(MemoryDecoder):
     def __init__(self, cfg, decoder_dtype: torch.dtype):
         super(MemoryCovDecoder, self).__init__(cfg)
-        self.cov_update = CovUpdateBlock(self.cfg, hidden_dim=128)
+        # cov_head: "recurrent" (shipped: second GRU + CovHead every iteration) or "single_shot"
+        if getattr(self.cfg, "cov_head", "recurrent") == "single_shot":
+            self.ss_head = SingleShotCovHead(inlier=getattr(self.cfg, "inlier", False),
+                                             outlier_sigma=getattr(self.cfg, "outlier_sigma", 32.))
+        else:
+            self.cov_update = CovUpdateBlock(self.cfg, hidden_dim=128)
 
         self.decoder_dtype = decoder_dtype
 
@@ -80,10 +144,24 @@ class MemoryCovDecoder(MemoryDecoder):
         self.decoder_layer      = self.decoder_layer.to(dtype=self.decoder_dtype)
         self.flow_token_encoder = self.flow_token_encoder.to(dtype=self.decoder_dtype)
         self.update_block       = self.update_block.to(dtype=self.decoder_dtype)
-        self.cov_update         = self.cov_update.to(dtype=self.decoder_dtype)
+        if self.recurrent:
+            self.cov_update     = self.cov_update.to(dtype=self.decoder_dtype)
         # Diagnostics: when set to a list, forward appends the mean |delta_flow| of every
         # iteration. Leave None for export.
         self.iter_log: list | None = None
+
+    @property
+    def recurrent(self) -> bool: return hasattr(self, "cov_update")
+
+    def cov_parameters(self):
+        """Parameters of the covariance branch (what --training_mode cov trains)."""
+        return (self.cov_update if self.recurrent else self.ss_head).parameters()
+
+    def use_single_shot(self, inlier: bool) -> None:
+        """Swap the recurrent branch for a fresh SingleShotCovHead on the same device; caller loads its weights."""
+        device = self.proj.weight.device
+        del self.cov_update
+        self.ss_head = SingleShotCovHead(inlier=inlier).to(device)
 
     def forward(self, cost_memory, context, cost_maps):  # pyright: ignore[reportIncompatibleMethodOverride]
         """
@@ -93,14 +171,16 @@ class MemoryCovDecoder(MemoryDecoder):
         cost_memory = cost_memory.to(dtype=self.decoder_dtype)
 
         flow_coords0, flow_coords1 = initialize_flow(context)
-        # c accumulates the per-iteration updates. The 2-channel head keeps its original form (offsets on
-        # the pixel grid, differenced at the end) so existing engines and parity references stay exact.
-        cov_dim = self.cov_update.cov_head.conv4.out_channels
-        if cov_dim == 2:
-            cov_coords0, cov_coords1 = flow_coords0, flow_coords1.clone()
-        else:
-            cov_coords0 = torch.zeros_like(flow_coords0[:, :1]).repeat(1, cov_dim, 1, 1)
-            cov_coords1 = cov_coords0
+        # Recurrent head: c accumulates the per-iteration updates. The 2-channel head keeps its original form
+        # (offsets on the pixel grid, differenced at the end) so existing engines and parity references stay exact.
+        if self.recurrent:
+            cov_dim = self.cov_update.cov_head.conv4.out_channels
+            if cov_dim == 2:
+                cov_coords0, cov_coords1 = flow_coords0, flow_coords1.clone()
+            else:
+                cov_coords0 = torch.zeros_like(flow_coords0[:, :1]).repeat(1, cov_dim, 1, 1)
+                cov_coords1 = cov_coords0
+        last_delta = torch.zeros_like(flow_coords0)
 
         flow_predictions = []
         cov_predictions = []
@@ -108,7 +188,7 @@ class MemoryCovDecoder(MemoryDecoder):
         context   = self.proj(context)
         flow_net, flow_inp  = torch.split(context, [128, 128], dim=1)
         flow_net = flow_net.tanh().to(dtype=self.decoder_dtype)
-        fcov_net = flow_net.clone().to(dtype=self.decoder_dtype)
+        fcov_net = flow_net.clone().to(dtype=self.decoder_dtype) if self.recurrent else None
         flow_inp = flow_inp.relu()
 
         flow_inp  = flow_inp.to(dtype=self.decoder_dtype)
@@ -118,7 +198,7 @@ class MemoryCovDecoder(MemoryDecoder):
         key, value = None, None
         # Built per forward from this module's own GRUs: nn.DataParallel replicas copy submodules,
         # not plain attributes, so a pair stored in __init__ would keep pointing at GPU 0's weights.
-        fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru)
+        fused_gru = FusedGRUPair(self.update_block.gru, self.cov_update.gru if self.recurrent else None)
         gru_pre = fused_gru.precompute(flow_inp)
 
         for i in range(self.depth):
@@ -126,7 +206,8 @@ class MemoryCovDecoder(MemoryDecoder):
             # eval mode (see the `else` branch below). Compute mask + upsample
             # only for that iteration; state-propagation ops (gru, flow_head,
             # cov_head, coord updates) still run every iteration unchanged.
-            needs_upsample = self.training or (i == self.depth - 1)
+            # The single-shot head is supervised on the final iteration only, also in training.
+            needs_upsample = (self.training and self.recurrent) or (i == self.depth - 1)
 
             flow_coords1      = flow_coords1.detach()
             bf16_flow_coords1 = flow_coords1.to(dtype=self.decoder_dtype)
@@ -149,17 +230,20 @@ class MemoryCovDecoder(MemoryDecoder):
             x_ab = torch.cat([motion_feat, motion_feat_global], dim=1)
             flow_net, fcov_net = fused_gru.step(flow_net, fcov_net, x_ab, gru_pre)
             delta_flow = self.update_block.flow_head(flow_net)
-            delta_cov  = self.cov_update.cov_head(fcov_net)
+            if self.recurrent:
+                delta_cov = self.cov_update.cov_head(fcov_net)
 
             # State propagation must happen every iteration so the next iter
             # consumes the updated coords (matches the original code).
             delta_flow_fp32 = delta_flow.to(dtype=torch.float32)
             flow_coords1    = flow_coords1 + delta_flow_fp32
+            prev_delta, last_delta = last_delta, delta_flow_fp32
             if self.iter_log is not None:
                 self.iter_log.append(delta_flow_fp32.norm(dim=1).mean().item())
 
-            delta_cov_fp32 = delta_cov.to(dtype=torch.float32)
-            cov_coords1    = cov_coords1 + delta_cov_fp32
+            if self.recurrent:
+                delta_cov_fp32 = delta_cov.to(dtype=torch.float32)
+                cov_coords1    = cov_coords1 + delta_cov_fp32
 
             if needs_upsample:
                 up_mask = self.update_block.mask(flow_net)
@@ -167,9 +251,19 @@ class MemoryCovDecoder(MemoryDecoder):
                 flow_up = self.upsample_flow(flow_coords1 - flow_coords0, up_mask)
                 flow_predictions.append(flow_up)
 
-                cov_mask = self.cov_update.forward_mask(fcov_net).to(dtype=torch.float32)
-                cov_up   = self.upsample_flow(cov_coords1 - cov_coords0, cov_mask)
-                cov_predictions.append(cov_up)
+                if self.recurrent:
+                    cov_mask = self.cov_update.forward_mask(fcov_net).to(dtype=torch.float32)
+                    cov_up   = self.upsample_flow(cov_coords1 - cov_coords0, cov_mask)
+                    cov_predictions.append(cov_up)
+
+        if not self.recurrent:
+            flow_low = flow_coords1 - flow_coords0
+            corr     = self.encode_flow_token(cost_maps, flow_coords1)          # 9x9 window at the final flow
+            cov_low  = self.ss_head(flow_net, x_ab, flow_inp, corr, flow_low, last_delta, prev_delta)
+            cov_up   = self.upsample_flow(cov_low, up_mask, scale=1.)
+            if self.training:
+                return flow_predictions, [cov_up]
+            return (flow_predictions[-1], flow_low), (self.ss_head.effective(cov_up), self.ss_head.effective(cov_low))
 
         if self.training:
             return flow_predictions, cov_predictions

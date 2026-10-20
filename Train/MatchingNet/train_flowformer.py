@@ -72,12 +72,12 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     model_ptr = model.module if isinstance(model, nn.DataParallel) else model
     match train_mode:
         case "flow":
-            for param in model_ptr.memory_decoder.cov_update.parameters():
+            for param in model_ptr.memory_decoder.cov_parameters():
                 param.requires_grad = False
         case "cov":
             for param in model_ptr.parameters():
                 param.requires_grad = False
-            for param in model_ptr.memory_decoder.cov_update.parameters():
+            for param in model_ptr.memory_decoder.cov_parameters():
                 param.requires_grad = True
 
     if modlecfg.wandb:

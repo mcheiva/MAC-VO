@@ -64,21 +64,38 @@ class FlowFormerCov(FlowFormer):
         "memory_decoder.att.pos_emb.rel_height.weight", "memory_decoder.att.pos_emb.rel_width.weight",
     )
 
-    COV_CONV4 = "memory_decoder.cov_update.cov_head.conv4"
+    COV_CONV4  = "memory_decoder.cov_update.cov_head.conv4"
+    COV_UPDATE = "memory_decoder.cov_update."
+    SS_HEAD    = "memory_decoder.ss_head."
 
     def load_ddp_state_dict(self, ckpt: OrderedDict):
         """
-        Strict load, except that the covariance head's conv4 follows the checkpoint:
+        Strict load, except that the covariance head follows the checkpoint:
         * 2-channel checkpoint into a 3-channel (Cholesky) model: rows c1, c2 are copied and the c3 row is
           zero, so the model starts exactly at the shipped diagonal solution (L21 = 0).
         * 3-channel checkpoint into a 2-channel model (e.g. a frontend built from the default config): the
           head is switched to 3 channels.
+        * Single-shot checkpoint into a recurrent model: the decoder switches to the single-shot head.
+        * Recurrent checkpoint into a single-shot model: the recurrent branch is dropped and the single-shot
+          head starts fresh; everything else still loads strictly.
         """
         cvt_ckpt = OrderedDict((k[7:] if k.startswith("module.") else k, v) for k, v in ckpt.items())
         for k in self.UNUSED_CKPT_KEYS:
             cvt_ckpt.pop(k, None)
 
-        head = self.memory_decoder.cov_update.cov_head
+        decoder = self.memory_decoder
+        if decoder.recurrent and any(k.startswith(self.SS_HEAD) for k in cvt_ckpt):
+            decoder.use_single_shot(inlier=cvt_ckpt[self.SS_HEAD + "out.weight"].size(0) == 4)
+            print("[FlowFormerCov] covariance head switched to single-shot to match the checkpoint")
+        if not decoder.recurrent:
+            cvt_ckpt = OrderedDict((k, v) for k, v in cvt_ckpt.items() if not k.startswith(self.COV_UPDATE))
+            missing, unexpected = self.load_state_dict(cvt_ckpt, strict=False)
+            assert not unexpected and all(k.startswith(self.SS_HEAD) for k in missing), (missing, unexpected)
+            if missing:
+                print("[FlowFormerCov] single-shot covariance head initialised fresh (not in the checkpoint)")
+            return
+
+        head = decoder.cov_update.cov_head
         w, b = cvt_ckpt[self.COV_CONV4 + ".weight"], cvt_ckpt[self.COV_CONV4 + ".bias"]
         if w.size(0) == 3 and head.conv4.out_channels == 2:
             head.set_out_dim(3)

@@ -96,8 +96,9 @@ class FlowFormerCovWrapper(torch.nn.Module):
         model.to(device)
         model.load_ddp_state_dict(ckpt)
         # The outputs below and the MACVO_TRT runtime assume log sigma per axis (exp(2 * cov) downstream).
-        assert model.memory_decoder.cov_update.cov_head.conv4.out_channels == 2, \
-            "3-channel (Cholesky) covariance head: emit [sigma_uu, sigma_vv, sigma_uv] in-graph first (handoff 7.4)"
+        decoder = model.memory_decoder
+        assert decoder.recurrent and decoder.cov_update.cov_head.conv4.out_channels == 2, \
+            "Cholesky / single-shot covariance head: emit [sigma_uu, sigma_vv, sigma_uv] in-graph first (handoff 7.4)"
         self.model = model
 
     def forward(self, image1, image2):
