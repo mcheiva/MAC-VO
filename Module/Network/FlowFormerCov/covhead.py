@@ -19,6 +19,18 @@ def cov_entries(c: torch.Tensor) -> torch.Tensor:
     return torch.cat([l11 * l11, l21 * l21 + l22 * l22, l11 * l21], dim=1)
 
 
+def correlation_peak_stats(corr: torch.Tensor) -> torch.Tensor:
+    """Matching-confidence cues of a correlation window [B, K, H, W] (fp32): best score, its margin over the
+    second best, and the entropy of the softmax over the window (Hu & Mordohai 2012 survey such measures)."""
+    corr = corr.float()
+    top2 = corr.topk(2, dim=1).values
+    logp = corr.log_softmax(dim=1)
+    return torch.cat([top2[:, :1], top2[:, :1] - top2[:, 1:], -(logp.exp() * logp).sum(dim=1, keepdim=True)], dim=1)
+
+
+CUE_DIM = 5     # recurrent head cues per iteration: correlation peak stats (3) + this iteration's flow update (2)
+
+
 class CovHead(nn.Module):
 
     def __init__(self, input_dim=128, hidden_dim=256, out_dim=2):
@@ -34,6 +46,11 @@ class CovHead(nn.Module):
         old = self.conv4
         self.conv4 = nn.Conv2d(old.in_channels, out_dim, 3, padding=1).to(device=old.weight.device, dtype=old.weight.dtype)
 
+    def set_in_dim(self, in_dim: int) -> None:
+        """Replace conv1 by a fresh conv with `in_dim` inputs (same dtype/device); caller loads its weights."""
+        old = self.conv1
+        self.conv1 = nn.Conv2d(in_dim, old.out_channels, 3, padding=1).to(device=old.weight.device, dtype=old.weight.dtype)
+
     def forward(self, x):
         x = self.conv2(self.relu(self.conv1(x)))
         x = self.conv4(self.relu(self.conv3(x)))
@@ -48,8 +65,10 @@ class CovUpdateBlock(nn.Module):
         self.gru = SepConvGRU(
             hidden_dim=hidden_dim, input_dim=128 + hidden_dim + hidden_dim
         )
-        # cov_channels: 2 = per-axis log sigma (shipped), 3 = Cholesky factor of the full 2x2 covariance
-        self.cov_head = CovHead(hidden_dim, hidden_dim=256, out_dim=getattr(args, "cov_channels", 2))
+        # cov_channels: 2 = per-axis log sigma (shipped), 3 = Cholesky factor of the full 2x2 covariance.
+        # cov_cues: CovHead also reads CUE_DIM matching-confidence cues per iteration (see MemoryCovDecoder).
+        cues = CUE_DIM if getattr(args, "cov_cues", False) else 0
+        self.cov_head = CovHead(hidden_dim + cues, hidden_dim=256, out_dim=getattr(args, "cov_channels", 2))
         self.mask = nn.Sequential(
             nn.Conv2d(128, 256, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -104,16 +123,9 @@ class SingleShotCovHead(nn.Module):
     @property
     def inlier(self) -> bool: return self.out.out_channels == 4
 
-    @staticmethod
-    def peak_stats(corr: torch.Tensor) -> torch.Tensor:
-        """Best correlation, its margin over the second best, and the entropy of the softmax over the window."""
-        top2 = corr.topk(2, dim=1).values
-        logp = corr.log_softmax(dim=1)
-        return torch.cat([top2[:, :1], top2[:, :1] - top2[:, 1:], -(logp.exp() * logp).sum(dim=1, keepdim=True)], dim=1)
-
     def forward(self, net, motion, context, corr, flow, delta, prev_delta) -> torch.Tensor:
         corr = corr.float()
-        x = torch.cat([net.float(), motion.float(), context.float(), corr, self.peak_stats(corr),
+        x = torch.cat([net.float(), motion.float(), context.float(), corr, correlation_peak_stats(corr),
                        flow / 8, delta, prev_delta], dim=1)
         return self.out(self.body(x))
 
@@ -163,6 +175,11 @@ class MemoryCovDecoder(MemoryDecoder):
 
     @property
     def recurrent(self) -> bool: return hasattr(self, "cov_update")
+
+    @property
+    def cov_cues(self) -> bool:
+        """Recurrent head reads matching-confidence cues (follows conv1's width, so it tracks the checkpoint)."""
+        return self.recurrent and self.cov_update.cov_head.conv1.in_channels > self.cov_update.gru.convz1.out_channels
 
     def cov_parameters(self):
         """Parameters of the covariance branch (what --training_mode cov trains)."""
@@ -241,7 +258,11 @@ class MemoryCovDecoder(MemoryDecoder):
             x_ab = torch.cat([motion_feat, motion_feat_global], dim=1)
             flow_net, fcov_net = fused_gru.step(flow_net, fcov_net, x_ab, gru_pre)
             delta_flow = self.update_block.flow_head(flow_net)
-            if self.recurrent:
+            if self.cov_cues:
+                # Ambiguity of this iteration's 9x9 correlation window and the size of its flow update
+                cues = torch.cat([correlation_peak_stats(cost_forward), delta_flow.float()], dim=1).to(fcov_net.dtype)
+                delta_cov = self.cov_update.cov_head(torch.cat([fcov_net, cues], dim=1))
+            elif self.recurrent:
                 delta_cov = self.cov_update.cov_head(fcov_net)
 
             # State propagation must happen every iteration so the next iter

@@ -64,6 +64,7 @@ class FlowFormerCov(FlowFormer):
         "memory_decoder.att.pos_emb.rel_height.weight", "memory_decoder.att.pos_emb.rel_width.weight",
     )
 
+    COV_CONV1  = "memory_decoder.cov_update.cov_head.conv1"
     COV_CONV4  = "memory_decoder.cov_update.cov_head.conv4"
     COV_UPDATE = "memory_decoder.cov_update."
     SS_HEAD    = "memory_decoder.ss_head."
@@ -78,6 +79,8 @@ class FlowFormerCov(FlowFormer):
         * Single-shot checkpoint into a recurrent model: the decoder switches to the single-shot head.
         * Recurrent checkpoint into a single-shot model: the recurrent branch is dropped and the single-shot
           head starts fresh; everything else still loads strictly.
+        * Checkpoint without cov_cues into a cue model: the cue inputs of conv1 start at zero (exactly the
+          checkpoint's head); a cue checkpoint into a model without cues switches conv1 to the cue width.
         """
         cvt_ckpt = OrderedDict((k[7:] if k.startswith("module.") else k, v) for k, v in ckpt.items())
         for k in self.UNUSED_CKPT_KEYS:
@@ -96,6 +99,14 @@ class FlowFormerCov(FlowFormer):
             return
 
         head = decoder.cov_update.cov_head
+        w1 = cvt_ckpt[self.COV_CONV1 + ".weight"]
+        if w1.size(1) > head.conv1.in_channels:
+            head.set_in_dim(w1.size(1))
+            print("[FlowFormerCov] covariance head switched to matching-confidence cues to match the checkpoint")
+        elif w1.size(1) < head.conv1.in_channels:
+            extra = w1.new_zeros(w1.size(0), head.conv1.in_channels - w1.size(1), *w1.shape[2:])
+            cvt_ckpt[self.COV_CONV1 + ".weight"] = torch.cat([w1, extra], dim=1)
+            print("[FlowFormerCov] covariance-head cue inputs initialised at zero (checkpoint has no cues)")
         w, b = cvt_ckpt[self.COV_CONV4 + ".weight"], cvt_ckpt[self.COV_CONV4 + ".bias"]
         if w.size(0) == 3 and head.conv4.out_channels == 2:
             head.set_out_dim(3)
