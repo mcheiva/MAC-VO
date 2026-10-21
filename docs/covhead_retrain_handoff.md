@@ -320,3 +320,73 @@ covariance entries (7.4, 7.6).
 decoder's 384-channel `inp_cat`, so all of this carries over to SEA-RAFT
 (`docs/searaft_cov_handoff.md`). For the replication itself, gate 3 on TartanAir v2 test remains
 the yardstick, so finding that data comes first.
+
+## 12. Results so far (2026-10-21)
+
+All heads keep the flow frozen, use the log-space NLL, β = 0, no mask, and alternate stereo steps.
+Held-out data is `seasidetown` throughout.
+
+| head | config | starts from | steps | change |
+|---|---|---|---|---|
+| 25k | `CovHeadChol` | shipped head | 25k of 30k | recurrent Cholesky head (sections 5.2, 5.4) |
+| SS A | `CovHeadSingleShot` | fresh head | 30k | single-shot head after the decoder loop |
+| SS B | `CovHeadSingleShotInlier` | fresh head | 30k | SS A + inlier probability, mixture NLL |
+| cues | `CovHeadCholCues` | 25k | 20k | + correlation-peak cues and flow update as head input |
+| cont | `CovHeadCholCont` | 25k | 20k | control for cues: same schedule, no cues |
+| deploy | `CovHeadCholDeploy` | 25k | 15k | frozen network in fp16 / bf16 (running) |
+| water | `CovHeadCholWater` | 25k | 15k | + 7 seasidetown sequences x10 (running) |
+
+The 30k checkpoint of the first run is worse than 25k in the tail (temporal calib mean 3.15 against
+2.35), so 25k is the reference.
+
+**Network level, 600 held-out pairs** (`evaluate.py`):
+
+| | temporal NLL | temporal calib mean / median | temporal AUSE | stereo NLL | stereo calib mean / median | stereo AUSE | stereo tail > 9.21 |
+|---|---|---|---|---|---|---|---|
+| shipped | 2.25 | 5.18 / 1.03 | 0.138 | 16.5 | 34.4 / 0.95 | 0.277 | 7.4% |
+| 25k | 2.35 | 5.49 / 1.06 | 0.142 | 12.0 | 25.8 / 1.08 | 0.236 | 5.9% |
+
+The temporal head is a wash. The gain is in stereo, the call behind every keypoint's depth sigma.
+
+**At the keypoints `CovAwareSelector` picks** (`Scripts/AdHoc/StereoTailAnalysis.py`, 600 pairs):
+- Stereo r^T Sigma^-1 r > 9.21: 6.45% (shipped) -> 5.44% (25k). Calibrated would be 1%.
+- Confidently wrong keypoints are almost all predicted nearer than GT, in low texture. The two
+  sources are water surfaces (the GT depth is likely the seabed) and sky bleeding into nearby
+  structure. 25k cuts the sky failures (GT depth > 80 m: 18% -> 3% of catastrophic keypoints).
+
+**MAC-VO, 15 held-out sequences** (`MACVO_Performant` with `CovAwareSelector`, fp32; runs are
+deterministic, so one repeat each):
+
+| | ATE m | RTE | ROE |
+|---|---|---|---|
+| shipped | 1.36 | 0.0094 | 0.056 |
+| 25k | 1.04 | 0.0088 | 0.048 |
+| cont | 1.04 | 0.0089 | 0.048 |
+| cues | 1.11 | 0.0090 | 0.049 |
+
+- Most of the gain is `Hard_P003`: shipped ATE 4.87 m, 25k 0.64 m. The shipped run diverges at
+  step 152 on sky keypoints.
+- Without `Hard_P003`, the averages are ATE 1.11 (shipped) / 1.07 (25k), RTE 0.0086 / 0.0089,
+  ROE 0.047 / 0.047. So 25k removes a failure mode and is level elsewhere. It does not improve
+  the typical sequence.
+- Cues add nothing over the control, and 20k more steps (cont) add nothing over 25k.
+
+On 5 of these sequences (two repeats each): SS A reaches ATE 1.43 against 1.37 for 25k and 2.17
+for shipped. SS B with the moment-matched output is worse (2.03). With the gated output
+(Sigma_inlier if p >= tau, else the outlier Sigma) it reaches 1.55. Neither single-shot head beats
+the recurrent one.
+
+**TensorRT** (`Export.py --mode fast`, `trtexec` opt level 5, strongly typed, batch 2, RTX 4090):
+- Shipped engine: 56.1 ms. Flow only (no covariance branch): 48.8 ms. SS A: 50.8 ms.
+- Engines match PyTorch to 0.01-0.02 px and about 1% sigma on confident pixels.
+- Under reduced precision, the single-shot sigma moves by about 20% in low texture.
+- In-repo `Export.py` still refuses 3-channel heads (gate 4). The numbers above come from a
+  scratch wrapper.
+
+**Status.**
+- Fallback and current best: the recurrent 25k head
+  (`Model/FlowFormerCovChol10-19-17-52-09/25000.pth`).
+- Running: deploy and water, one per GPU. Water is compared on its 8 held-out seasidetown
+  sequences only (`TartanAirV1_Seaside_Holdout.yaml`).
+- Do not run MAC-VO or `evaluate.py` on a GPU that is training the recurrent head. Both
+  processes need about 21 GB, and WDDM paging stalls the training.
