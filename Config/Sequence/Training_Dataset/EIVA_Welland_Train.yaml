@@ -1,0 +1,106 @@
+# Welland (1 dive), GT from Scripts/Dataset/make_eiva_gt.py; x21 = ~25% of the pairs next to TartanAirV1_Zip
+-   type: EIVA_NoIMU
+    name: rep0_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep1_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep2_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep3_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep4_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep5_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep6_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep7_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep8_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep9_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep10_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep11_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep12_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep13_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep14_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep15_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep16_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep17_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep18_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep19_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland
+-   type: EIVA_NoIMU
+    name: rep20_eiva_welland
+    args:
+        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
+        gt: D:/Datasets/EIVA_GT/welland

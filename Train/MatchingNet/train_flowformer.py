@@ -173,7 +173,7 @@ if __name__ == "__main__":
                   AddImageNoise(dict(stdv=5.0)),
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]
     
-    traindatasets = TrainDataset[StereoFrame].mp_instantiation(datacfg.data, 0, -1, lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"})
+    traindatasets = TrainDataset[StereoFrame].mp_instantiation(datacfg.data, 0, -1, lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU", "EIVA_NoIMU"})
     traindatasets = [ds for ds in traindatasets if ds is not None]
     Logger.write("info", f"Loaded {len(traindatasets)} of {len(datacfg.data)} training sequences, "
                          f"{sum(len(ds) for ds in traindatasets)} pairs")

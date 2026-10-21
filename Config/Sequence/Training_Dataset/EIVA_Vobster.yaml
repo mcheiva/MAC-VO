@@ -1,0 +1,21 @@
+# Vobster Quay (4 dives), once: held out by CovHeadEIVA_Welland
+-   type: EIVA_NoIMU
+    name: eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT/plane_mid
+-   type: EIVA_NoIMU
+    name: eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT/plane_nose
+-   type: EIVA_NoIMU
+    name: eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT/plane_tail1
+-   type: EIVA_NoIMU
+    name: eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT/plane_tail2
