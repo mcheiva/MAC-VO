@@ -1,0 +1,560 @@
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep0_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep1_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep2_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep3_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep4_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep5_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep6_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep7_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep8_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P000
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P000
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P005
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P005
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P006
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P006
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P007
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P007
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P008
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P008
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Easy_P009
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Easy/P009
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+-   type: TartanAir_NoIMU
+    name: rep9_seasidetown_Hard_P002
+    args:
+        root: D:/Datasets/TartanAirV1/seasidetown/Hard/P002
+        compressed: false
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
