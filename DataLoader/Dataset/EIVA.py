@@ -18,6 +18,11 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
     Frames are the posed frames of the GT index, at the GT's resolution (the images are downscaled with
     INTER_AREA, as the MACVO_TRT runtime feeds the engine); gt_flow of a frame goes to the next indexed frame.
     Pixels without GT have depth 0 and NaN flow, so stereo_target and the covariance loss skip them.
+
+    Where the reconstruction is locally wrong, a frame's rendered depth disagrees with its own stereo pair by a
+    few percent everywhere (Scripts/Dataset/check_eiva_gt.py stores the per-frame `disparity_ratio`). With
+    `max_scale_error` (default 0.025) such a frame has no stereo target, and no flow target if it or the next
+    frame is off.
     """
     @classmethod
     def name(cls) -> str: return "EIVA_NoIMU"
@@ -32,6 +37,8 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         self.K        = torch.tensor(index["K"], dtype=torch.float32).unsqueeze(0)
         self.baseline = float(index["baseline"])
         self.T_BS     = pp.identity_SE3(1)
+        ratio = np.array(index.get("disparity_ratio", [1.] * len(self.frames)), dtype=np.float64)
+        self.consistent = np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)      # NaN (no GT) -> False
         super().__init__(len(self.frames))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -45,10 +52,12 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         name  = self.frames[index]
         gt    = np.load(self.gt_root / f"{Path(name).stem}.npz")
         depth = torch.tensor(gt["depth"], dtype=torch.float32)[None, None]
-        if "flow" in gt:
+        if "flow" in gt and self.consistent[index] and self.consistent[index + 1]:
             flow = torch.tensor(gt["flow"], dtype=torch.float32).unsqueeze(0)
-        else:       # last frame: no next frame
+        else:       # last frame (no next frame) or inconsistent GT
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
+        if not self.consistent[index]:
+            depth = torch.zeros_like(depth)
         return StereoFrame(
             idx     = [local_index],
             time_ns = [index * 1000],       # FIXME: a fake timestamp (as GeneralStereo).
@@ -72,4 +81,4 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        })
+        }, allow_excessive_cfg=True)    # optional: max_scale_error
