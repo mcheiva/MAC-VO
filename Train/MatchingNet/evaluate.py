@@ -25,6 +25,8 @@ a perfect ranking); err@20 is the mean error of the 20% kept, by the head and by
 
 Temporal pairs are also split by TartanAir mask class (v1: 0 valid, 1 cross-occluded, 10 self-occluded,
 100 out of view); covariance statistics use every pixel with a finite target, as the training loss does.
+EIVA sequences (photogrammetry GT, no occlusion classes) count every pixel with a target as valid; the EIVA
+fold configs hold the other site out, e.g. --config Config/Train/CovHeadEIVA_Vobster.yaml scores Welland.
 """
 import argparse
 import math
@@ -142,7 +144,10 @@ def load_batch(seqs: list[TrainDataset], pairs: list[tuple[int, int]]) -> tuple[
         pair = seqs[s][i]
         frames.append(DataFramePair(idx=pair.idx, cur=cast(crop(pair.cur)), nxt=cast(crop(pair.nxt)), time_ns=pair.time_ns))
         seq = seqs[s].sequence
-        code = torch.from_numpy(seq.flow_loader.mask_codes(seq.get_index(seqs[s].get_index(i))).astype(np.int16))
+        if getattr(seq, "flow_loader", None) is not None:
+            code = torch.from_numpy(seq.flow_loader.mask_codes(seq.get_index(seqs[s].get_index(i))).astype(np.int16))
+        else:   # no occlusion classes (EIVA photogrammetry GT): every pixel with a target counts as valid
+            code = torch.zeros((pair.cur.stereo.height, pair.cur.stereo.width), dtype=torch.int16)
         codes.append(center_crop(code[None], [480, 640]))
     return DataFramePair.collate(frames), torch.stack(codes)
 
@@ -211,7 +216,7 @@ def main():
 
     cfg, _ = load_config(args.config)
     modelcfg = namespace_to_cfgnode(cfg.Model)
-    seqs = TrainDataset[StereoFrame].mp_instantiation(cfg.Evaluate.data, 0, -1, lambda c: c.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"})
+    seqs = TrainDataset[StereoFrame].mp_instantiation(cfg.Evaluate.data, 0, -1, lambda c: c.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU", "EIVA_NoIMU"})
     seqs = [s for s in seqs if s is not None]
     pairs = draw_pairs(seqs, args.pairs, args.seed)
     Logger.write("info", f"{len(seqs)} sequences, {len(pairs)} pairs")
