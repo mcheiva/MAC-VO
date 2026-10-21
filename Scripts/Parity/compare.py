@@ -4,6 +4,7 @@
     python Scripts/Parity/compare.py --torch fast            # bf16/fp16 eager
     python Scripts/Parity/compare.py --trt MACVO_FrontendCov.plan [--pairing b2]
     python Scripts/Parity/compare.py --onnx MACVO_FrontendCov.onnx
+    python Scripts/Parity/compare.py --trt Chol.plan --ref runs/ref_chol   # retrained head (make_reference.py --ckpt)
 
 --pairing b2 runs stereo+temporal of a frame as one batch-2 call in the production layout
 (img1=[L_t, L_{t-1}], img2=[R_t, L_t]); kf stays batch-1. Default b1 runs every pair alone.
@@ -17,16 +18,16 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import PAIR_TYPES, ROOT, build_model, run_model  # noqa: E402
+from common import CKPT, PAIR_TYPES, ROOT, build_model, run_model  # noqa: E402
 
 OUT_KEYS = ("flow", "flow_raw", "cov", "cov_raw")
-KEYS = ["epe_mean", "epe_p99", "epe_max", "epe_frac_gt_0.5", "dlogcov_mean", "dlogcov_p99",
+KEYS = ["epe_mean", "epe_p99", "epe_max", "epe_frac_gt_0.5", "dlogcov_mean", "dlogcov_p99", "drho_mean",
         "raw_epe_mean", "disp_epe_mean"]
 
 
 class TorchCand:
-    def __init__(self, mode, depth):
-        self.m = build_model(mode, decoder_depth=depth)
+    def __init__(self, mode, depth, ckpt):
+        self.m = build_model(mode, decoder_depth=depth, ckpt=ckpt)
 
     def __call__(self, i1: np.ndarray, i2: np.ndarray) -> dict:   # [B,3,H,W] float32 in [0,1]
         o = run_model(self.m, torch.from_numpy(i1).cuda(), torch.from_numpy(i2).cuda())
@@ -72,12 +73,23 @@ class TrtCand:
         return {k: v.cpu().numpy() for k, v in outs.items()}
 
 
+def log_sigma_rho(cov: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Engine cov -> (log sigma per axis, correlation). 2 channels are log sigma already (shipped head, rho = 0),
+    3 channels are [sigma_uu, sigma_vv, sigma_uv]."""
+    if cov.shape[0] == 2:
+        return cov, np.zeros_like(cov[:1])
+    cov = cov.astype(np.float64)
+    return 0.5 * np.log(cov[:2]), cov[2:] / np.sqrt(cov[0:1] * cov[1:2])
+
+
 def metrics(c: dict, r: dict) -> dict:
     epe = np.linalg.norm(c["flow"] - r["flow"], axis=0)
-    dcov = np.abs(c["cov"] - r["cov"])
+    (ls_c, rho_c), (ls_r, rho_r) = log_sigma_rho(c["cov"]), log_sigma_rho(r["cov"])
+    dcov = np.abs(ls_c - ls_r)
     return {"epe_mean": float(epe.mean()), "epe_p99": float(np.quantile(epe, .99)),
             "epe_max": float(epe.max()), "epe_frac_gt_0.5": float((epe > .5).mean()),
             "dlogcov_mean": float(dcov.mean()), "dlogcov_p99": float(np.quantile(dcov, .99)),
+            "drho_mean": float(np.abs(rho_c - rho_r).mean()),
             "raw_epe_mean": float(np.linalg.norm(c["flow_raw"] - r["flow_raw"], axis=0).mean()),
             "disp_epe_mean": float(np.abs(c["flow"][0] - r["flow"][0]).mean())}
 
@@ -95,11 +107,12 @@ def main():
     ap.add_argument("--ref", type=Path, default=ROOT / "runs" / "ref")
     ap.add_argument("--pairing", choices=["b1", "b2"], default="b1")
     ap.add_argument("--depth", type=int, default=12, help="(--torch) decoder iterations")
+    ap.add_argument("--ckpt", type=Path, default=CKPT, help="(--torch) frontend checkpoint, as given to make_reference.py")
     ap.add_argument("--json", type=Path)
     ap.add_argument("--limit", type=int, default=0, help="only the first N frames (debug)")
     args = ap.parse_args()
 
-    cand = (TorchCand(args.torch, args.depth) if args.torch else
+    cand = (TorchCand(args.torch, args.depth, args.ckpt) if args.torch else
             OnnxCand(args.onnx) if args.onnx else TrtCand(args.trt))
 
     files = sorted(args.ref.glob("*/*_stereo.npz"))

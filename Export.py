@@ -17,9 +17,14 @@ Wrapper conventions (must match the consumer pipeline):
     (Python or the C++ MACVO_TRT runtime) divides by 255 itself before feeding
     the engine -- in-graph /255 + consumer /255 is catastrophic on real
     sequences (keypoint selector drops every match).
-  * Outputs are (flow, flow_raw, cov, cov_raw). `cov` is the raw log-uncertainty;
-    the consumer applies `exp(2 * cov)` itself. Same reasoning: in-graph exp
-    plus consumer exp = double-exp explosion.
+  * Outputs are (flow, flow_raw, cov, cov_raw). For the shipped head (2
+    channels, log sigma per axis) `cov` is the raw log-uncertainty and the
+    consumer applies `exp(2 * cov)` itself. Same reasoning: in-graph exp plus
+    consumer exp = double-exp explosion.
+  * Any other head (--ckpt: the Cholesky head, single-shot heads) emits the
+    covariance entries [sigma_uu, sigma_vv, sigma_uv] in fp32 in-graph
+    (handoff 7.4): sigma^2 = exp(2 c) reaches ~1.6e5, beyond fp16. The
+    consumer must then read 3 channels and skip its exp (handoff 7.6).
   * Dynamic batch only; H=W=704 fixed (matches the trained checkpoint padding).
   * Trace at batch=1 to fit an 8 GB GPU during torch.onnx.export.
 
@@ -55,6 +60,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "Module"))
 from Network.FlowFormer.configs.submission import get_cfg   # noqa: E402
 from Network.FlowFormerCov import build_flowformer           # noqa: E402
+from Network.FlowFormerCov.covhead import cov_entries        # noqa: E402
 
 
 _DTYPES = {
@@ -68,14 +74,18 @@ _DEFAULT_OUT = {
 }
 
 
+_SHIPPED_CKPT = "./Model/MACVO_FrontendCov.pth"
+
+
 class FlowFormerCovWrapper(torch.nn.Module):
     """
     Inputs: already-normalised images in [0, 1]. The consumer divides by 255.
-    Outputs: raw log-uncertainty `cov`; the consumer applies `exp(2 * cov)`.
-    Both pre/post-process intentionally live OUTSIDE the graph.
+    Outputs: shipped head -> raw log-uncertainty `cov`, the consumer applies `exp(2 * cov)`;
+    other heads -> covariance entries [sigma_uu, sigma_vv, sigma_uv] in fp32.
+    Input normalisation intentionally lives OUTSIDE the graph.
     """
 
-    def __init__(self, mode: str = "fast", decoder_depth: int = 12):
+    def __init__(self, mode: str = "fast", decoder_depth: int = 12, ckpt: str = _SHIPPED_CKPT):
         super().__init__()
         if mode not in _DTYPES:
             raise ValueError(f"Unknown mode {mode!r} (expected 'fast' or 'precise')")
@@ -89,16 +99,13 @@ class FlowFormerCovWrapper(torch.nn.Module):
         # precise: fp32 / fp32 -- TRT strongly-typed plan respects fp32 literally.
         model = build_flowformer(cfg, enc_dtype, dec_dtype)
         device = torch.device("cuda")
-        ckpt = torch.load("./Model/MACVO_FrontendCov.pth",
-                          map_location=device, weights_only=True)
+        state = torch.load(ckpt, map_location=device, weights_only=True)
 
         model.eval()
         model.to(device)
-        model.load_ddp_state_dict(ckpt)
-        # The outputs below and the MACVO_TRT runtime assume log sigma per axis (exp(2 * cov) downstream).
-        decoder = model.memory_decoder
-        assert decoder.recurrent and decoder.cov_update.cov_head.conv4.out_channels == 2, \
-            "Cholesky / single-shot covariance head: emit [sigma_uu, sigma_vv, sigma_uv] in-graph first (handoff 7.4)"
+        model.load_ddp_state_dict(state)    # adapts the covariance head to the checkpoint's layout
+        # Shipped layout: log sigma per axis, the MACVO_TRT runtime applies exp(2 * cov).
+        self.log_sigma = model.memory_decoder.log_sigma_output
         self.model = model
 
     def forward(self, image1, image2):
@@ -108,19 +115,24 @@ class FlowFormerCovWrapper(torch.nn.Module):
         # of `flow`, `flow_raw`, `cov`, `cov_raw` makes setOutputTensorAddress
         # error and the trajectory writer never runs.
         (flow_up, flow_raw), (cov_up, cov_raw) = self.model(image1, image2)
-        # Return raw log-uncertainty (NOT exp'd); consumer applies exp(2*cov).
-        return flow_up, flow_raw.float(), cov_up.float(), cov_raw.float()
+        if self.log_sigma:
+            # Return raw log-uncertainty (NOT exp'd); consumer applies exp(2*cov).
+            return flow_up, flow_raw.float(), cov_up.float(), cov_raw.float()
+        return flow_up, flow_raw.float(), cov_entries(cov_up.float()), cov_entries(cov_raw.float())
 
 
 def export(onnx_path: str | None = None,
            opset_version: int = 18,
            run_onnxsim: bool = True,
            mode: str = "fast",
-           decoder_depth: int = 12) -> None:
+           decoder_depth: int = 12,
+           ckpt: str = _SHIPPED_CKPT) -> None:
     if onnx_path is None:
         onnx_path = _DEFAULT_OUT[mode]
 
-    model = FlowFormerCovWrapper(mode=mode, decoder_depth=decoder_depth)
+    model = FlowFormerCovWrapper(mode=mode, decoder_depth=decoder_depth, ckpt=ckpt)
+    print(f"Checkpoint {ckpt}: cov = " + ("log sigma per axis, the consumer applies exp(2 * cov)" if model.log_sigma
+                                          else "[sigma_uu, sigma_vv, sigma_uv] in fp32"), flush=True)
 
     H = W = 704
     batch_size = 1
@@ -213,13 +225,16 @@ def main() -> int:
                    help="Skip onnxsim post-pass")
     p.add_argument("--decoder-depth", type=int, default=12,
                    help="Decoder iterations (weights are shared across iterations)")
+    p.add_argument("--ckpt", default=_SHIPPED_CKPT,
+                   help="Frontend checkpoint; any head but the shipped one exports covariance entries")
     args = p.parse_args()
 
     export(onnx_path=args.onnx,
            opset_version=args.opset,
            run_onnxsim=not args.no_onnxsim,
            mode=args.mode,
-           decoder_depth=args.decoder_depth)
+           decoder_depth=args.decoder_depth,
+           ckpt=args.ckpt)
     return 0
 
 

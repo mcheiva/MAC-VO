@@ -189,6 +189,11 @@ class MemoryCovDecoder(MemoryDecoder):
         """Recurrent head reads matching-confidence cues (follows conv1's width, so it tracks the checkpoint)."""
         return self.recurrent and self.cov_update.cov_head.conv1.in_channels > self.cov_update.gru.convz1.out_channels
 
+    @property
+    def log_sigma_output(self) -> bool:
+        """The shipped layout, 2 channels of log sigma per axis; every other head emits Cholesky parameters (cov_entries)."""
+        return self.recurrent and self.cov_update.cov_head.conv4.out_channels == 2
+
     def cov_parameters(self):
         """Parameters of the covariance branch (what --training_mode cov trains)."""
         return (self.cov_update if self.recurrent else self.ss_head).parameters()

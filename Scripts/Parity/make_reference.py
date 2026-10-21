@@ -1,9 +1,11 @@
 """Generate fp32 PyTorch reference outputs (batch 1) for the parity harness.
 
     python Scripts/Parity/make_reference.py                 # 3 seqs x 8 frames x 3 pair types
+    python Scripts/Parity/make_reference.py --ckpt Model/<run>/25000.pth --out runs/ref_chol
 
-Each pair -> runs/ref/<seq>/<frame>_<pair>.npz with the uint8 704x704 inputs, fp32 outputs
-(cov is log-sigma, not exponentiated) and the per-iteration mean |delta_flow| of the decoder.
+Each pair -> runs/ref/<seq>/<frame>_<pair>.npz with the uint8 704x704 inputs, fp32 outputs in the
+engine layout (cov is log-sigma for the shipped head, not exponentiated; [sigma_uu, sigma_vv,
+sigma_uv] for any other head) and the per-iteration mean |delta_flow| of the decoder.
 """
 import argparse
 import sys
@@ -12,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import (DATA_ROOT, PAIR_TYPES, ROOT, build_model, list_frames,  # noqa: E402
+from common import (CKPT, DATA_ROOT, PAIR_TYPES, ROOT, build_model, list_frames,  # noqa: E402
                     load_image_u8, run_model, u8_to_input)
 
 KF_LAG = 5
@@ -29,9 +31,10 @@ def main():
     ap.add_argument("--seqs", nargs="+", default=["plane_nose", "plane_tail1", "Welland"])
     ap.add_argument("--frames-per-seq", type=int, default=8)
     ap.add_argument("--mode", default="fp32", choices=["fp32", "fast"])
+    ap.add_argument("--ckpt", type=Path, default=CKPT, help="frontend checkpoint (default: the shipped head)")
     args = ap.parse_args()
 
-    model = build_model(args.mode)
+    model = build_model(args.mode, ckpt=args.ckpt)
     dec = model.memory_decoder
     for seq in args.seqs:
         frames = list_frames(args.root / seq)
