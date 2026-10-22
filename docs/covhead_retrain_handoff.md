@@ -525,9 +525,21 @@ The production checkpoints give 0.32 / 1.26 / 1.11 m at 5k / 10k / 15k; fold W's
 - The gate is not the fix. Fold V retrained with it (v2) still fails `plane_tail2` in-sample
   (1.28 m), and shipped and 25k fail it without any EIVA data. Fold V v2 matches v1 out of sample
   (Welland ATE 0.147 against 0.136 m; network metrics within 0.3%).
-- Fold W is the odd one out. It is also the head with the widest sigma (temporal calib median
-  0.71). The working hypothesis is that a more conservative covariance carries the pose graph
-  through the stretch. `cov_scale` (frontend option, a sigma^2 multiplier) tests it.
+- Wider sigma is not what carries fold W through. A global sigma^2 scale on the production head
+  does not help (x2 1.18 m, x4 1.33 m, against 1.11 m).
+- Robustness under small perturbations (`cov_scale` x0.8 / 0.9 / 1 / 1.1 / 1.25, whole-dive ATE):
+
+  | head | median | runs with ATE > 0.4 m |
+  |---|---|---|
+  | shipped | 1.57 m | 5/5 |
+  | deploy | 0.44 m | 5/5 |
+  | fold W v1 | 0.15 m | 0/5 |
+  | fold W v2 | 0.71 m | 3/5 (0.14 m at x0.8-0.9, 0.71-0.74 m from x1.0) |
+
+  - The outcome is a property of the trained head: three of the four are stable.
+  - Two training runs that differ by 2% of Welland pairs land on either side of the edge. How a
+    head copes with this stretch varies between training runs, so judge it on several runs or
+    seeds, not one.
 
 **Recommendation (pending v2).**
 - Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts ATE by
