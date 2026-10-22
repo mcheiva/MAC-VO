@@ -580,7 +580,11 @@ On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
 | EIVA + water | **1.11 / 0.0116 / 0.054** | **1.15** / - / 0.055 | 0.87 |
 
 - The seaside data removes the EIVA heads' `Hard_P003` failure (2.57 -> 0.87 m, ROE 0.141 ->
-  0.052).
+  0.052). It holds under perturbation (`cov_scale` x0.8 / 0.9 / 1 / 1.1 / 1.25, ATE m):
+  - EIVA + water: 0.70-0.94, ROE 0.049-0.054. Never fails, best median ROE.
+  - shipped: 0.58-2.39, fails at x0.8 / 0.9.
+  - deploy: 0.53-2.33, fails at x0.8-1.0.
+  - production v2: 1.90-2.85, fails at every scale.
 - It is the best head on held-out TartanAir.
 - On the EIVA dives (in-sample, like the production head) it matches production v1: 0.012 /
   0.321 / 0.035 m on `plane_mid` / `plane_nose` / `plane_tail1`, 0.132 m on Welland. It breaks in
@@ -603,10 +607,14 @@ On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
 **Open.**
 1. Gate 6: the C++ runtime has to read 3 covariance channels. It must drop its `exp(2 * cov)` and
    feed sigma_uv into `covariance_2to3` and the selector.
-2. Near-range overconfidence. On `Hard_P003` the production head (without water data) picked
-   2x the confidently wrong stereo keypoints, 86% of them nearer than 5 m (`StereoTailAnalysis.py
-   --precision fast`). The water data fixes the trajectory there. Re-running the tail analysis on
-   the EIVA + water head would confirm it at the keypoints.
+2. Near-range overconfidence at keypoints remains. On `Hard_P003` (`StereoTailAnalysis.py
+   --precision fast`) both EIVA heads pick ~2x the confidently wrong stereo keypoints of shipped:
+   - production v2: 49, 86% nearer than 5 m;
+   - EIVA + water: 56, 91% nearer than 5 m;
+   - shipped 27, deploy 24.
+
+   The EIVA + water trajectory is nonetheless robust there. Lowering that tail is the next head
+   improvement, e.g. more near-range TartanAir pairs, or a near-range stereo weight.
 3. Fold W's sigma is too wide on Vobster: Welland's GT is noisier. Down-weighting that noise
    could help:
    - a per-frame GT noise floor from `check_eiva_gt.py`, or
