@@ -627,9 +627,17 @@ Mean coverage per dive, v1 -> v2:
 | v1 | 50% | 42% | 41% | 48% | 50% |
 | v2 | 58% | 54% | 54% | 61% | 71% |
 
-- The consistency checks pass as for v1 on the four Vobster dives (Welland's is running).
-- On plane_mid, filled pixels agree with the frozen FlowFormer as well as the others within each confidence band.
-  They concentrate in the hard, sparsely reconstructed regions. The five-dive verification is running.
+- The consistency checks pass as for v1 on all five dives (Welland: 4.6% of frames beyond the 2.5% scale gate, 2.4%
+  of pairs beyond 0.75 px).
+- Filled pixels against the frozen FlowFormer, all five dives:
+  - within each confidence band they agree as well as the pixels with a point of their own (plane_mid); they
+    concentrate in the hard, sparsely reconstructed regions;
+  - where they disagree by more than 3 px, the cause is not the fill. On plane_nose 55-81% of those pixels map
+    outside the other image (near range). On Welland they lie in the textureless haze, where FlowFormer itself is
+    unreliable, and a patch-correlation check could not decide which of the two is right;
+  - on the pixels both versions cover, v2 agrees with FlowFormer better than v1.
+- The trainings use v2 with the filled pixels. `EIVA_NoIMU`'s `use_filled: false` drops them; the ablation was
+  dropped, since nothing showed the filled pixels to be wrong.
 
 Two alternatives were tested on held-out frames against the frozen FlowFormer, and neither is better:
 
