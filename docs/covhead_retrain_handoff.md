@@ -642,6 +642,43 @@ Two alternatives were tested on held-out frames against the frozen FlowFormer, a
 
 Decision: v2 as rendered. The fold trainings below use it.
 
+**Using the head downstream: sigma_uv, the selector, the flow-covariance floor.**
+
+How the frontend's covariance reaches MAC-VO:
+
+- Stereo sigma only drives keypoint selection.
+  - The pose graph's depth variance comes from the depth map's spread in a patch shaped by the *flow* covariance
+    (`MatchCovariance`, `Project2to3.py:162`).
+- Flow sigma drives both selection and the pose-graph weights.
+  - Its floor is `min_flow_cov` (0.25 px), and the head predicts 0.08-0.15 px on confident pixels.
+
+1. **sigma_uv.** On held-out data it lowers temporal NLL (|rho| 0.2-0.3, better on 60-65% of pixels) but not the
+   trajectories. On the EIVA + water folds:
+   - dropping it (`cov_offdiag: false`): Welland 0.142 against 0.145 m, Vobster 0.103 against 0.111 m;
+   - ranking by the trace (`flow_score: trace`; upstream uses sigma_uu + sigma_vv - 2 sigma_uv): Welland 0.140 m,
+     Vobster 0.105 m;
+   - held-out TartanAir: RTE / ROE level.
+
+   The runtime can therefore take sigma_uu, sigma_vv from the 3-channel engine and ignore sigma_uv (gate 6 shrinks
+   to that).
+2. **The floor** (`min_flow_cov`; `m_MinFlowCov` in MACVO_TRT). Held-out EIVA, deployed precision, ATE m /
+   frame-to-frame mm:
+
+   | | Welland | Vobster mean (cut) |
+   |---|---|---|
+   | shipped, 0.25 px | 0.217 / 2.13 | 0.131 / 3.97 |
+   | shipped, 0.10 px | 0.122 / 1.41 | 0.119 / 3.83 |
+   | EIVA + water, 0.25 px | 0.145 / 1.51 | 0.111 / 3.42 |
+   | EIVA + water, 0.15 px | 0.134 / 1.41 | 0.106 / 3.33 |
+   | EIVA + water, 0.10 px | 0.118 / 1.34 | 0.104 / 3.36 |
+
+   - The floor is the largest single gain: shipped improves by 44% on Welland from the setting alone.
+   - At 0.10 px the EIVA head adds -3% ATE / -5% frame-to-frame on Welland and -13% / -12% on Vobster. The
+     larger gaps at 0.25 px came from the floor holding the shipped head back.
+   - On held-out TartanAir (EIVA + water head) 0.10 px is neutral: ATE 1.15 against 1.11 m, RTE 0.0113 against
+     0.0116.
+   - Recommended runtime setting: 0.10 px, also with the shipped head. Compare all heads at 0.10 px from here on.
+
 **Recommendation.**
 - Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
   - Its recipe gains ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
