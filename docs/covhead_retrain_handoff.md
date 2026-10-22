@@ -557,6 +557,15 @@ The production checkpoints give 0.32 / 1.26 / 1.11 m at 5k / 10k / 15k; fold W's
 The ~20% gain over shipped and deploy holds in all three runs. The network-level metrics of the
 three runs agree within a few percent.
 
+**Run-to-run variance of fold V (held out on Welland, 184 m).** ATE m / frame-to-frame mm:
+
+| | shipped | 25k | deploy | v1 | v2 | seed 2 |
+|---|---|---|---|---|---|---|
+| Welland | 0.217 / 2.13 | 0.171 / 1.61 | 0.174 / 1.86 | 0.136 / 1.36 | 0.147 / 1.38 | 0.145 / 1.43 |
+
+- About 33% better ATE than shipped and 17% better than deploy, in all three runs.
+- Stereo AUSE is 0.373-0.383 in all three, against 0.458 for shipped.
+
 **Recommendation (pending v2).**
 - Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts ATE by
   ~24% and frame-to-frame error by ~16% against shipped. Hard stretches like `plane_tail2`'s still
