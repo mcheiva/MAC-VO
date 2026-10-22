@@ -380,8 +380,8 @@ the recurrent one.
 - Shipped engine: 56.1 ms. Flow only (no covariance branch): 48.8 ms. SS A: 50.8 ms.
 - Engines match PyTorch to 0.01-0.02 px and about 1% sigma on confident pixels.
 - Under reduced precision, the single-shot sigma moves by about 20% in low texture.
-- In-repo `Export.py` still refuses 3-channel heads (gate 4). The numbers above come from a
-  scratch wrapper.
+- The numbers above come from a scratch wrapper. `Export.py --ckpt` now exports 3-channel heads
+  (section 13).
 
 **Status (superseded by section 13).**
 - Fallback: the recurrent 25k head (`Model/FlowFormerCovChol10-19-17-52-09/25000.pth`).
@@ -455,3 +455,57 @@ the runtime feeds the engine). Positions are SE3-aligned to the GT (no scale, as
   (trained in fp16 / bf16) does not, so deployment-precision training matters here.
 - MAC-VO runs are deterministic, so each number is one run. The scripts are in the session
   scratchpad (`macvo/eval_eiva.py`, `macvo/cfg_eiva`).
+
+**Production head** (`CovHeadEIVA_All`: the same recipe on both sites, Vobster x27 + Welland x10,
+~24% of the pairs): `Model/FlowFormerCovEIVAAll10-22-02-48-27/15000.pth`. The ONNX
+(`Export.py --mode fast --ckpt`) and the opt-level-5 engine sit next to it
+(`MACVO_FrontendCov_EIVAAll_fast.onnx`, `..._o5.plan`). It cannot be scored on held-out EIVA
+data, since it trained on all of it; the two folds validate the recipe.
+
+**TensorRT (gates 4-5) for the production head.**
+- `cov` is `[B, 3, 704, 704]` `[sigma_uu, sigma_vv, sigma_uv]` in fp32, computed in-graph.
+- Against PyTorch fp32 on confident pixels: EPE 0.010 px (stereo) / 0.017 px (temporal),
+  |d log sigma| 1.1% / 1.2%. PyTorch in fp16 / bf16 alone gives 0.009 / 0.015 px and
+  1.05% / 0.92%, so the engine adds almost nothing beyond the precision.
+- Batch 2 on an otherwise idle 4090: 57.8 ms, against 56.1 ms for the shipped engine (+3%: the
+  third channel and the in-graph fp32 Sigma).
+- The C++ runtime (gate 6) still reads 2 channels of log sigma. To use this engine it must read 3
+  channels, drop its `exp(2 * cov)`, and feed sigma_uv into `covariance_2to3` and the selector.
+
+**Does EIVA training cost anything on TartanAir?** MAC-VO on the 15 seasidetown sequences, deployed
+precision:
+
+| | shipped | 25k | deploy | fold V | production |
+|---|---|---|---|---|---|
+| ATE m / RTE / ROE | 1.07 / 0.0085 / 0.047 | 1.09 / 0.0087 / 0.047 | 1.05 / 0.0090 / 0.048 | 1.14 / 0.0094 / 0.053 | 1.12 / 0.0094 / 0.053 |
+| `Hard_P003` ATE | 0.61 | 0.66 | 1.42 | 2.33 | 2.23 |
+
+- On the other 14 sequences all heads are level (fold V ATE 1.06 against 1.10 shipped; ROE 0.047
+  both).
+- Both EIVA heads fail `Hard_P003`, the sky-heavy sequence where shipped failed in fp32, so this
+  is consistent, not chance. It is the trade-off of the underwater data.
+- In deployed precision none of the heads gains on TartanAir. The fp32 gain of section 12
+  (shipped's `Hard_P003` failure) does not occur in fp16 / bf16.
+
+**Water fine-tune** (`CovHeadCholWater`, the 8 held-out seasidetown sequences, deployed precision):
+ATE 1.32 / RTE 0.0116 / ROE 0.055. Shipped gives 1.36 / 0.0120 / 0.062; 25k and deploy give
+1.33-1.38 / 0.0124-0.0128 / 0.061-0.062. Water is best on all three, with ROE 12% better.
+
+**Recommendation.**
+- Underwater (the EIVA use case): the production EIVA head. On held-out dives its recipe cuts mean
+  ATE by 72% against shipped and 39% against deploy, and it is best on every dive.
+- Outdoor or sky scenes: keep a TartanAir head (shipped or deploy).
+- The fp32-trained 25k head should not be deployed in fp16 / bf16: it breaks on `plane_tail1`.
+
+**Open.**
+1. Gate 6: the C++ runtime has to read 3 covariance channels.
+2. `Hard_P003` with the EIVA heads. Next steps:
+   - run `StereoTailAnalysis.py --precision fast` on it (likely sky keypoints again);
+   - try a lower EIVA share, or add `TartanAirV1_Seaside_Train` to the production mix.
+3. Fold W's sigma is too wide on Vobster: Welland's GT is noisier. Down-weighting that noise
+   could help:
+   - a per-frame GT noise floor from `check_eiva_gt.py`, or
+   - training only on frames whose ratio is within 1%.
+4. More EIVA dives with photogrammetry would allow a real held-out test of the production head.
+   `make_eiva_gt.py` + `check_eiva_gt.py` turn any dive with `pose_gt.txt` + `pointcloud_gt.txt`
+   into training data.
