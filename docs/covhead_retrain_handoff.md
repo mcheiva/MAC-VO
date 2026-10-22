@@ -575,9 +575,16 @@ three runs agree within a few percent.
 
 **Open.**
 1. Gate 6: the C++ runtime has to read 3 covariance channels.
-2. `Hard_P003` with the EIVA heads. Next steps:
-   - run `StereoTailAnalysis.py --precision fast` on it (likely sky keypoints again);
-   - try a lower EIVA share, or add `TartanAirV1_Seaside_Train` to the production mix.
+2. `Hard_P003` with the EIVA heads. It is not the sky this time. `StereoTailAnalysis.py
+   --precision fast` on its 300 pairs, keypoints as `CovAwareSelector` picks them:
+   - shipped: 27 confidently wrong stereo keypoints, 7% of them over 80 m;
+   - deploy: 24, 4% over 80 m;
+   - production v2: 49, 86% of them nearer than 5 m and 4% over 80 m.
+
+   The EIVA dives are 1-3 m away, so the underwater data likely makes the head trust near-range
+   stereo, which fails on TartanAir's near water and low-texture walls.
+   `CovHeadEIVA_AllWater` (the production mix + `TartanAirV1_Seaside_Train`) tests whether
+   in-domain near-range water data fixes it. A lower EIVA share is the alternative.
 3. Fold W's sigma is too wide on Vobster: Welland's GT is noisier. Down-weighting that noise
    could help:
    - a per-frame GT noise floor from `check_eiva_gt.py`, or
