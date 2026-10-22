@@ -20,9 +20,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
     Pixels without GT have depth 0 and NaN flow, so stereo_target and the covariance loss skip them.
 
     Where the reconstruction is locally wrong, a frame's rendered depth disagrees with its own stereo pair by a
-    few percent everywhere (Scripts/Dataset/check_eiva_gt.py stores the per-frame `disparity_ratio`). With
-    `max_scale_error` (default 0.025) such a frame has no stereo target, and no flow target if it or the next
-    frame is off.
+    few percent everywhere, and a wrong relative pose shifts a pair's whole flow field (Scripts/Dataset/
+    check_eiva_gt.py stores the per-frame `disparity_ratio` and `flow_error`). A frame beyond `max_scale_error`
+    (default 0.025), or in a pair beyond `max_flow_error` (default 0.75 px), has no stereo target; a pair
+    touching such a frame has no flow target.
     """
     @classmethod
     def name(cls) -> str: return "EIVA_NoIMU"
@@ -38,7 +39,12 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         self.baseline = float(index["baseline"])
         self.T_BS     = pp.identity_SE3(1)
         ratio = np.array(index.get("disparity_ratio", [1.] * len(self.frames)), dtype=np.float64)
-        self.consistent = np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)      # NaN (no GT) -> False
+        flow_error = np.array(index.get("flow_error", [0.] * len(self.frames)), dtype=np.float64)
+        # pair i -> i + 1 consistent (the last frame has no pair: NaN); a frame keeps its stereo target if its scale
+        # is consistent and neither of its pairs is off (one of the two poses is wrong, which one is unknown)
+        self.pair_ok = ~(flow_error > getattr(cfg, "max_flow_error", 0.75))
+        self.consistent = (np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)) & self.pair_ok \
+                          & np.concatenate([[True], self.pair_ok[:-1]])                       # NaN ratio (no GT) -> False
         super().__init__(len(self.frames))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -52,7 +58,7 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         name  = self.frames[index]
         gt    = np.load(self.gt_root / f"{Path(name).stem}.npz")
         depth = torch.tensor(gt["depth"], dtype=torch.float32)[None, None]
-        if "flow" in gt and self.consistent[index] and self.consistent[index + 1]:
+        if "flow" in gt and self.pair_ok[index] and self.consistent[index] and self.consistent[index + 1]:
             flow = torch.tensor(gt["flow"], dtype=torch.float32).unsqueeze(0)
         else:       # last frame (no next frame) or inconsistent GT
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
