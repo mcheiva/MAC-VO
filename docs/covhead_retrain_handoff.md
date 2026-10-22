@@ -627,9 +627,9 @@ Mean coverage per dive, v1 -> v2:
 | v1 | 50% | 42% | 41% | 48% | 50% |
 | v2 | 58% | 54% | 54% | 61% | 71% |
 
-- The consistency checks pass as for v1.
-- Filled pixels agree with the frozen FlowFormer as well as the others within each confidence band. They
-  concentrate in the hard, sparsely reconstructed regions.
+- The consistency checks pass as for v1 on the four Vobster dives (Welland's is running).
+- On plane_mid, filled pixels agree with the frozen FlowFormer as well as the others within each confidence band.
+  They concentrate in the hard, sparsely reconstructed regions. The five-dive verification is running.
 
 Two alternatives were tested on held-out frames against the frozen FlowFormer, and neither is better:
 
