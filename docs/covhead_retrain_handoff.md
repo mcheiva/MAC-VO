@@ -383,10 +383,75 @@ the recurrent one.
 - In-repo `Export.py` still refuses 3-channel heads (gate 4). The numbers above come from a
   scratch wrapper.
 
-**Status.**
-- Fallback and current best: the recurrent 25k head
-  (`Model/FlowFormerCovChol10-19-17-52-09/25000.pth`).
-- Running: deploy and water, one per GPU. Water is compared on its 8 held-out seasidetown
-  sequences only (`TartanAirV1_Seaside_Holdout.yaml`).
-- Do not run MAC-VO or `evaluate.py` on a GPU that is training the recurrent head. Both
-  processes need about 21 GB, and WDDM paging stalls the training.
+**Status (superseded by section 13).**
+- Fallback: the recurrent 25k head (`Model/FlowFormerCovChol10-19-17-52-09/25000.pth`).
+- Run one GPU job per GPU: two jobs on a 24 GB card overflow it, and WDDM paging then stalls both
+  for hours. This applies to trainings, MAC-VO, `evaluate.py` and `trtexec` alike.
+
+## 13. EIVA underwater data: in-domain training and evaluation (2026-10-22)
+
+**Data.** `D:/Datasets/EIVA` has five rectified stereo dives at 2816x2816: four at Vobster Quay
+(`plane_mid`, `plane_nose`, `plane_tail1`, `plane_tail2`, 1,858 frames) and Welland (4,718 frames).
+Each comes with a 3DF Zephyr reconstruction: per-image poses (`pose_gt.txt`, world to camera,
+read as in MACVO_TRT's `scripts/gt_to_tum.py`) and a dense coloured point cloud
+(`pointcloud_gt.txt`, 2-56M points).
+
+**Ground truth** (`Scripts/Dataset/make_eiva_gt.py`, output in `D:/Datasets/EIVA_GT`, ~6 GB):
+- Depth and flow to the next posed frame are rendered at 704x704 (K / 4, the frontend's
+  resolution).
+- A GPU z-buffer keeps the nearest point per pixel. A pixel is dropped when it lies more than 5%
+  behind the nearest depth in its 7x7 window, which removes points seen through holes.
+- The flow is the displacement of the point each pixel keeps.
+- 41-50% of pixels are covered; water and the far seabed have none.
+- The frozen FlowFormer agrees with it to a 0.10-0.26 px median on Vobster and 0.06-0.4 px on
+  Welland. On its most confident pixels the error is 0.06-0.2 px.
+- `Scripts/Dataset/check_eiva_gt.py` measures each frame's median ratio of predicted to rendered
+  disparity. Vobster is within 0.5% on 90% of frames. On Welland, 4.5% of frames are off by more
+  than 2.5% and 3.8% by more than 5%, which points to local reconstruction errors. `EIVA_NoIMU` leaves those
+  frames unsupervised (`max_scale_error` 0.025).
+
+**Training.** `CovHeadCholDeploy`'s recipe (25k head, frozen network in fp16 / bf16, 15k steps,
+lr 6e-5, stereo alternation) plus one EIVA site at ~25% of the pairs. The split is by site:
+- `CovHeadEIVA_Vobster` (fold V) trains on Vobster and is tested on Welland.
+- `CovHeadEIVA_Welland` (fold W) trains on Welland and is tested on Vobster.
+
+Each fold takes ~2 h on one 4090 (2.1 steps/s).
+
+**Network level** (`evaluate.py --precision fast`, 600 held-out pairs; the fold column is the
+fold that did not train on that site):
+
+| Welland (fold V) | shipped | 25k | deploy | fold V |
+|---|---|---|---|---|
+| temporal NLL / tail > 9.21 / AUSE | 2.44 / 7.2% / 0.108 | 2.20 / 7.6% / 0.109 | 2.54 / 8.7% / 0.105 | **1.56 / 6.1% / 0.099** |
+| stereo NLL / tail > 9.21 / AUSE | 13.3 / 7.2% / 0.460 | 15.8 / 7.2% / 0.465 | 22.7 / 11.1% / 0.444 | **10.1** / 7.3% / **0.384** |
+
+| Vobster (fold W) | shipped | 25k | deploy | fold W |
+|---|---|---|---|---|
+| temporal NLL / tail > 9.21 / AUSE | 1.25 / 4.1% / 0.125 | 1.32 / 4.8% / 0.127 | 1.36 / 5.2% / **0.117** | **0.94 / 2.4%** / 0.121 |
+| stereo NLL / tail > 9.21 / AUSE | 1.88 / 3.9% / 0.145 | 2.29 / 4.9% / 0.144 | 2.79 / 6.5% / **0.137** | **1.24 / 3.0%** / 0.149 |
+
+- The TartanAir-only heads are overconfident underwater (stereo tail up to 11%).
+- Both folds fix the calibration tail.
+- Fold W's sigma is wide on the bulk (temporal calib median 0.71, ideal 1.386): it learned
+  Welland's noisier GT (stereo median 0.3-0.4 px against 0.15 px on Vobster) as uncertainty.
+  Fold V, trained on the cleaner Vobster GT, also improves ranking.
+
+**MAC-VO** (`MACVO_Performant` + `CovAwareSelector`, deployed fp16 / bf16, 704x704 INTER_AREA as
+the runtime feeds the engine). Positions are SE3-aligned to the GT (no scale, as MACVO_TRT's
+`compare_trajectories.py`). ATE in m; frame-to-frame displacement error in mm:
+
+| sequence (GT path) | shipped | 25k | deploy | EIVA, held out |
+|---|---|---|---|---|
+| plane_mid (15.7 m) | 0.018 / 2.35 | 0.018 / 2.29 | 0.017 / 2.10 | **0.010 / 1.57** (W) |
+| plane_nose (68.0 m) | 0.404 / 8.76 | 0.365 / 8.92 | 0.370 / 8.31 | **0.319 / 7.37** (W) |
+| plane_tail1 (52.0 m) | 0.060 / 2.92 | 2.324 / 45.5 | 0.077 / 3.26 | **0.041 / 2.79** (W) |
+| plane_tail2 (77.8 m) | 1.616 / 43.0 | 0.743 / 19.3 | 0.442 / 11.7 | **0.151 / 6.77** (W) |
+| welland (184.1 m) | 0.217 / 2.13 | 0.171 / 1.61 | 0.174 / 1.86 | **0.136 / 1.36** (V) |
+| mean | 0.463 / 11.8 | 0.724 / 15.5 | 0.216 / 5.45 | **0.131 / 3.97** |
+
+- The held-out EIVA head is best on every sequence. Mean ATE drops 72% against shipped and 39%
+  against deploy.
+- The 25k head (trained in fp32) breaks in deployed precision on `plane_tail1`. The deploy head
+  (trained in fp16 / bf16) does not, so deployment-precision training matters here.
+- MAC-VO runs are deterministic, so each number is one run. The scripts are in the session
+  scratchpad (`macvo/eval_eiva.py`, `macvo/cfg_eiva`).
