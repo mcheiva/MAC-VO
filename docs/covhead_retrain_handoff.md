@@ -568,6 +568,11 @@ three runs agree within a few percent.
 
 **EIVA + water head** (`CovHeadEIVA_AllWater`: the production mix +
 `TartanAirV1_Seaside_Train`; `Model/FlowFormerCovEIVAAllWater10-22-13-17-15/15000.pth`).
+- Its ONNX and opt-level-5 engine sit next to it (`MACVO_FrontendCov_EIVAAllWater_fast.onnx`,
+  `..._o5.plan`).
+- Engine against PyTorch fp32 on confident pixels: EPE 0.011 px (stereo) / 0.019 px (temporal),
+  |d log sigma| 1.2-1.3%.
+- Batch 2: 57.9 ms against 55.9 ms for the shipped engine (+4%).
 
 On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
 
