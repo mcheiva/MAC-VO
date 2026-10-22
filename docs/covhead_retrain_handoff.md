@@ -489,15 +489,15 @@ each checkpoint (`MACVO_FrontendCov_EIVAAll_fast.onnx`, `..._o5.plan`).
 **Does EIVA training cost anything on TartanAir?** MAC-VO on the 15 seasidetown sequences, deployed
 precision:
 
-| | shipped | 25k | deploy | fold V | production |
-|---|---|---|---|---|---|
-| ATE m / RTE / ROE | 1.07 / 0.0085 / 0.047 | 1.09 / 0.0087 / 0.047 | 1.05 / 0.0090 / 0.048 | 1.14 / 0.0094 / 0.053 | 1.12 / 0.0094 / 0.053 |
-| `Hard_P003` ATE | 0.61 | 0.66 | 1.42 | 2.33 | 2.23 |
+| | shipped | 25k | deploy | fold V | production v1 | production v2 |
+|---|---|---|---|---|---|---|
+| ATE m / RTE / ROE | 1.07 / 0.0085 / 0.047 | 1.09 / 0.0087 / 0.047 | 1.05 / 0.0090 / 0.048 | 1.14 / 0.0094 / 0.053 | 1.12 / 0.0094 / 0.053 | 1.16 / 0.0095 / 0.054 |
+| `Hard_P003` ATE | 0.61 | 0.66 | 1.42 | 2.33 | 2.23 | 2.57 |
 
 - On the other 14 sequences all heads are level (fold V ATE 1.06 against 1.10 shipped; ROE 0.047
   both).
-- Both EIVA heads fail `Hard_P003`, the sky-heavy sequence where shipped failed in fp32, so this
-  is consistent, not chance. It is the trade-off of the underwater data.
+- All three EIVA heads fail `Hard_P003`, the sky-heavy sequence where shipped failed in fp32, so
+  this is consistent, not chance. It is the trade-off of the underwater data.
 - In deployed precision none of the heads gains on TartanAir. The fp32 gain of section 12
   (shipped's `Hard_P003` failure) does not occur in fp16 / bf16.
 
