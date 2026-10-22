@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 
@@ -29,6 +31,29 @@ def correlation_peak_stats(corr: torch.Tensor) -> torch.Tensor:
 
 
 CUE_DIM = 5     # recurrent head cues per iteration: correlation peak stats (3) + this iteration's flow update (2)
+
+
+def inlier_cholesky(c: torch.Tensor, outlier_var: float, mode: str = "precision", gate_tau: float = 0.5) -> torch.Tensor:
+    """
+    [c1, c2, c3, logit p] of an inlier head -> the Cholesky parameters of the covariance consumers use. p is the
+    probability that the error is drawn from N(0, Sigma) rather than from N(0, outlier_var I).
+    * precision: Sigma / p, the inlier term's expected precision p Sigma^-1 (the weight reweighted least squares gives a
+      mixture residual); about Sigma where p ~ 1, inflated where the match is likely an outlier.
+    * gated: Sigma where p >= gate_tau, outlier_var I elsewhere.
+    * moment: the moment-matched p Sigma + (1 - p) outlier_var I (inflates even confident pixels by (1 - p) outlier_var).
+    """
+    p = torch.sigmoid(c[:, 3:4]).clamp(min=1e-4)
+    if mode == "precision":
+        return torch.cat([c[:, :2] - 0.5 * p.log(), c[:, 2:3] / p.sqrt()], dim=1)
+    if mode == "gated":
+        log_sigma_out = 0.5 * math.log(outlier_var) * torch.ones_like(p)
+        return torch.where(p >= gate_tau, c[:, :3], torch.cat([log_sigma_out, log_sigma_out, torch.zeros_like(p)], dim=1))
+    assert mode == "moment", mode
+    e = cov_entries(c[:, :3])
+    uu, vv = p * e[:, 0:1] + (1 - p) * outlier_var, p * e[:, 1:2] + (1 - p) * outlier_var
+    l11 = uu.sqrt()
+    l21 = p * e[:, 2:3] / l11
+    return torch.cat([l11.log(), (vv - l21 * l21).clamp(min=1e-12).sqrt().log(), l21], dim=1)
 
 
 class CovHead(nn.Module):
@@ -65,7 +90,8 @@ class CovUpdateBlock(nn.Module):
         self.gru = SepConvGRU(
             hidden_dim=hidden_dim, input_dim=128 + hidden_dim + hidden_dim
         )
-        # cov_channels: 2 = per-axis log sigma (shipped), 3 = Cholesky factor of the full 2x2 covariance.
+        # cov_channels: 2 = per-axis log sigma (shipped), 3 = Cholesky factor of the full 2x2 covariance,
+        # 4 = Cholesky factor + the logit of the inlier probability (mixture likelihood, see inlier_cholesky).
         # cov_cues: CovHead also reads CUE_DIM matching-confidence cues per iteration (see MemoryCovDecoder).
         cues = CUE_DIM if getattr(args, "cov_cues", False) else 0
         self.cov_head = CovHead(hidden_dim + cues, hidden_dim=256, out_dim=getattr(args, "cov_channels", 2))
@@ -312,5 +338,8 @@ class MemoryCovDecoder(MemoryDecoder):
 
         if self.training:
             return flow_predictions, cov_predictions
-        else:
-            return (flow_predictions[-1], flow_coords1 - flow_coords0), (cov_predictions[-1], cov_coords1 - cov_coords0)
+        cov_up, cov_low = cov_predictions[-1], cov_coords1 - cov_coords0
+        if cov_dim == 4:        # inlier head: consumers get a covariance (inlier_output, see inlier_cholesky)
+            mode, var, tau = getattr(self.cfg, "inlier_output", "precision"), getattr(self.cfg, "outlier_sigma", 32.) ** 2, getattr(self.cfg, "gate_tau", 0.5)
+            cov_up, cov_low = inlier_cholesky(cov_up, var, mode, tau), inlier_cholesky(cov_low, var, mode, tau)
+        return (flow_predictions[-1], flow_coords1 - flow_coords0), (cov_up, cov_low)

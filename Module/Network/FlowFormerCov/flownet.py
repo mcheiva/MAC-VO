@@ -1,3 +1,4 @@
+import math
 import torch
 from collections import OrderedDict
 
@@ -72,10 +73,11 @@ class FlowFormerCov(FlowFormer):
     def load_ddp_state_dict(self, ckpt: OrderedDict):
         """
         Strict load, except that the covariance head follows the checkpoint:
-        * 2-channel checkpoint into a 3-channel (Cholesky) model: rows c1, c2 are copied and the c3 row is
-          zero, so the model starts exactly at the shipped diagonal solution (L21 = 0).
-        * 3-channel checkpoint into a 2-channel model (e.g. a frontend built from the default config): the
-          head is switched to 3 channels.
+        * Fewer channels in the checkpoint than in the model: the checkpoint's rows are copied and the new
+          ones start silent - c3 = 0 (the shipped diagonal solution, L21 = 0) and, for the 4-channel inlier
+          head, p = 0.95 everywhere.
+        * More channels in the checkpoint (e.g. a frontend built from the default config): the head is
+          switched to the checkpoint's channel count.
         * Single-shot checkpoint into a recurrent model: the decoder switches to the single-shot head.
         * Recurrent checkpoint into a single-shot model: the recurrent branch is dropped and the single-shot
           head starts fresh; everything else still loads strictly.
@@ -108,12 +110,18 @@ class FlowFormerCov(FlowFormer):
             cvt_ckpt[self.COV_CONV1 + ".weight"] = torch.cat([w1, extra], dim=1)
             print("[FlowFormerCov] covariance-head cue inputs initialised at zero (checkpoint has no cues)")
         w, b = cvt_ckpt[self.COV_CONV4 + ".weight"], cvt_ckpt[self.COV_CONV4 + ".bias"]
-        if w.size(0) == 3 and head.conv4.out_channels == 2:
-            head.set_out_dim(3)
-            print("[FlowFormerCov] covariance head switched to 3 channels (Cholesky) to match the checkpoint")
-        elif w.size(0) == 2 and head.conv4.out_channels == 3:
-            cvt_ckpt[self.COV_CONV4 + ".weight"] = torch.cat([w, torch.zeros_like(w[:1])], dim=0)
-            cvt_ckpt[self.COV_CONV4 + ".bias"]   = torch.cat([b, torch.zeros_like(b[:1])], dim=0)
-            print("[FlowFormerCov] Cholesky covariance head initialised from a 2-channel checkpoint (c3 = 0)")
+        n_ckpt, n_model = w.size(0), head.conv4.out_channels
+        if n_ckpt > n_model:
+            head.set_out_dim(n_ckpt)
+            print(f"[FlowFormerCov] covariance head switched to {n_ckpt} channels to match the checkpoint")
+        elif n_ckpt < n_model:
+            # new rows start silent: c3 = 0 (the diagonal solution), and the inlier logit at p = 0.95 once the
+            # decoder's per-iteration updates are summed and upsampled (x8)
+            bias = torch.zeros(n_model - n_ckpt, dtype=b.dtype)
+            if n_model == 4:
+                bias[-1] = math.log(0.95 / 0.05) / (8 * self.memory_decoder.depth)
+            cvt_ckpt[self.COV_CONV4 + ".weight"] = torch.cat([w, w.new_zeros(n_model - n_ckpt, *w.shape[1:])], dim=0)
+            cvt_ckpt[self.COV_CONV4 + ".bias"]   = torch.cat([b, bias.to(b.device)], dim=0)
+            print(f"[FlowFormerCov] {n_model}-channel covariance head initialised from a {n_ckpt}-channel checkpoint")
         self.load_state_dict(cvt_ckpt, strict=True)
 
