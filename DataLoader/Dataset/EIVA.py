@@ -45,6 +45,8 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         self.pair_ok = ~(flow_error > getattr(cfg, "max_flow_error", 0.75))
         self.consistent = (np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)) & self.pair_ok \
                           & np.concatenate([[True], self.pair_ok[:-1]])                       # NaN ratio (no GT) -> False
+        # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
+        self.use_filled = bool(getattr(cfg, "use_filled", True))
         super().__init__(len(self.frames))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -64,6 +66,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
         if not self.consistent[index]:
             depth = torch.zeros_like(depth)
+        if not self.use_filled and "filled" in gt:
+            hole = torch.tensor(gt["filled"].astype(bool))[None, None]
+            depth = torch.where(hole, 0., depth)
+            flow = torch.where(hole, float("nan"), flow)
         return StereoFrame(
             idx     = [local_index],
             time_ns = [index * 1000],       # FIXME: a fake timestamp (as GeneralStereo).
@@ -87,4 +93,4 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled

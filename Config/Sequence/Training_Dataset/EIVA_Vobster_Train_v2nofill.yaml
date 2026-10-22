@@ -1,0 +1,1297 @@
+# Vobster Quay (4 dives), v2 GT without the filled pixels (outlier removal only) from Scripts/Dataset/make_eiva_gt.py; x54 = ~25% of the pairs next to TartanAirV1_Zip
+-   type: EIVA_NoIMU
+    name: rep0_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep0_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep0_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep0_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep1_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep1_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep1_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep1_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep2_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep2_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep2_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep2_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep3_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep3_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep3_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep3_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep4_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep4_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep4_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep4_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep5_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep5_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep5_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep5_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep6_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep6_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep6_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep6_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep7_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep7_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep7_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep7_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep8_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep8_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep8_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep8_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep9_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep9_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep9_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep9_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep10_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep10_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep10_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep10_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep11_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep11_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep11_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep11_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep12_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep12_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep12_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep12_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep13_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep13_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep13_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep13_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep14_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep14_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep14_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep14_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep15_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep15_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep15_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep15_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep16_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep16_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep16_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep16_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep17_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep17_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep17_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep17_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep18_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep18_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep18_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep18_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep19_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep19_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep19_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep19_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep20_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep20_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep20_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep20_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep21_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep21_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep21_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep21_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep22_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep22_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep22_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep22_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep23_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep23_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep23_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep23_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep24_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep24_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep24_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep24_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep25_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep25_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep25_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep25_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep26_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep26_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep26_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep26_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep27_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep27_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep27_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep27_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep28_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep28_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep28_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep28_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep29_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep29_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep29_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep29_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep30_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep30_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep30_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep30_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep31_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep31_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep31_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep31_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep32_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep32_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep32_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep32_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep33_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep33_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep33_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep33_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep34_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep34_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep34_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep34_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep35_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep35_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep35_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep35_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep36_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep36_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep36_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep36_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep37_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep37_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep37_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep37_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep38_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep38_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep38_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep38_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep39_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep39_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep39_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep39_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep40_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep40_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep40_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep40_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep41_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep41_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep41_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep41_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep42_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep42_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep42_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep42_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep43_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep43_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep43_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep43_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep44_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep44_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep44_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep44_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep45_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep45_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep45_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep45_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep46_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep46_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep46_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep46_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep47_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep47_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep47_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep47_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep48_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep48_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep48_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep48_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep49_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep49_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep49_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep49_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep50_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep50_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep50_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep50_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep51_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep51_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep51_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep51_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep52_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep52_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep52_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep52_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep53_eiva_plane_mid
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_mid
+        gt: D:/Datasets/EIVA_GT_v2/plane_mid
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep53_eiva_plane_nose
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_nose
+        gt: D:/Datasets/EIVA_GT_v2/plane_nose
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep53_eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+        use_filled: false
+-   type: EIVA_NoIMU
+    name: rep53_eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
+        use_filled: false
