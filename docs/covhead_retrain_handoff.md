@@ -467,10 +467,14 @@ the runtime feeds the engine). Positions are SE3-aligned to the GT (no scale, as
   scratchpad (`macvo/eval_eiva.py`, `macvo/cfg_eiva`).
 
 **Production head** (`CovHeadEIVA_All`: the same recipe on both sites, Vobster x27 + Welland x10,
-~24% of the pairs): `Model/FlowFormerCovEIVAAll10-22-02-48-27/15000.pth`. The ONNX
-(`Export.py --mode fast --ckpt`) and the opt-level-5 engine sit next to it
-(`MACVO_FrontendCov_EIVAAll_fast.onnx`, `..._o5.plan`). It cannot be scored on held-out EIVA
-data, since it trained on all of it; the two folds validate the recipe.
+~24% of the pairs). Current: v2, trained with the temporal GT gate,
+`Model/FlowFormerCovEIVAAll10-22-08-46-09/15000.pth`. v1 is `...EIVAAll10-22-02-48-27`, trained
+before the gate. The ONNX (`Export.py --mode fast --ckpt`) and the opt-level-5 engine sit next to
+each checkpoint (`MACVO_FrontendCov_EIVAAll_fast.onnx`, `..._o5.plan`).
+- v2 engine against PyTorch fp32 on confident pixels: EPE 0.011 / 0.017 px, |d log sigma| 1.1%.
+- v2 engine timing: 58.6 ms against 56.8 ms for the shipped engine in the same session.
+- The production head cannot be scored on held-out EIVA data, since it trained on all of it; the
+  folds validate the recipe.
 
 **TensorRT (gates 4-5) for the production head.**
 - `cov` is `[B, 3, 704, 704]` `[sigma_uu, sigma_vv, sigma_uv]` in fp32, computed in-graph.
