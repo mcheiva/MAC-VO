@@ -77,6 +77,16 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
         case "flow":
             for param in model_ptr.memory_decoder.cov_parameters():
                 param.requires_grad = False
+            # flow_trainable: "all" (default), "decoder+cost" (the two Twins image encoders stay frozen) or "decoder"
+            # (the cost-memory encoder too) - a domain fine-tune of the matcher without moving its pretrained features.
+            trainable = modlecfg.get("flow_trainable", "all")
+            frozen = {"all": [], "decoder+cost": [model_ptr.context_encoder, model_ptr.memory_encoder.feat_encoder],
+                      "decoder": [model_ptr.context_encoder, model_ptr.memory_encoder]}[trainable]
+            for module in frozen:
+                for param in module.parameters():
+                    param.requires_grad = False
+            n_train = sum(p.numel() for p in model_ptr.parameters() if p.requires_grad)
+            Logger.write("info", f"Flow training ({trainable}): {n_train / 1e6:.2f} M trainable parameters")
         case "cov":
             for param in model_ptr.parameters():
                 param.requires_grad = False
