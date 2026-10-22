@@ -594,13 +594,26 @@ On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
 - On the EIVA dives (in-sample, like the production head) it matches production v1: 0.012 /
   0.321 / 0.035 m on `plane_mid` / `plane_nose` / `plane_tail1`, 0.132 m on Welland. It breaks in
   `plane_tail2`'s hard stretch like every in-sample head (1.30 m).
-- It has no held-out EIVA test of its own. Its EIVA half rests on the folds, its water half on
-  the seasidetown hold-out.
+- Its recipe has a held-out EIVA test of its own: the site folds `CovHeadEIVA_VobsterWater` /
+  `CovHeadEIVA_WellandWater`, deployed precision. ATE m / frame-to-frame mm, `plane_tail2` cut at
+  frame 486:
+
+  | held out | shipped | deploy | EIVA only (3 runs) | EIVA + water |
+  |---|---|---|---|---|
+  | Welland | 0.217 / 2.13 | 0.174 / 1.86 | 0.136-0.147 / 1.36-1.43 | 0.145 / 1.51 |
+  | Vobster (mean of 4) | 0.131 / 3.97 | 0.134 / 3.98 | 0.104-0.108 / 3.36-3.46 | 0.111 / 3.42 |
+
+  - Adding the water data keeps the underwater gain within the EIVA-only runs' spread.
+  - Held-out NLL on Welland improves: temporal 1.42, stereo 9.65, against 1.49 and 10.1 for fold
+    V.
+  - On Vobster the stereo ranking is slightly worse than shipped's (AUSE 0.144 against 0.132),
+    yet the trajectories are better.
+  - Fold W + water gets through `plane_tail2`'s hard stretch (whole dive 0.33 m, shipped 1.62 m).
 
 **Recommendation.**
 - Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
-  - Its recipe gains ~33% ATE on held-out Welland and ~20% on held-out Vobster against shipped
-    (three training runs each).
+  - Its recipe gains ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
+    shipped. Measured on its own folds and on three EIVA-only runs per site.
   - It is the best head on held-out TartanAir.
   - It needs the C++ runtime to read 3 covariance channels (gate 6).
 - Until then, keep the shipped head in the runtime.
