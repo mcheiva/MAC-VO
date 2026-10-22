@@ -491,9 +491,27 @@ precision:
 ATE 1.32 / RTE 0.0116 / ROE 0.055. Shipped gives 1.36 / 0.0120 / 0.062; 25k and deploy give
 1.33-1.38 / 0.0124-0.0128 / 0.061-0.062. Water is best on all three, with ROE 12% better.
 
-**Recommendation.**
-- Underwater (the EIVA use case): the production EIVA head. On held-out dives its recipe cuts mean
-  ATE by 72% against shipped and 39% against deploy, and it is best on every dive.
+**Correction: plane_tail2 and wrong temporal GT.** In-sample, the production head fails
+`plane_tail2`: ATE 1.11 m and frame-to-frame error 31.7 mm, against 0.15 m for fold W, which never
+saw Vobster. Fold V, also trained on it, fails the same way (1.12 m). The production checkpoints get
+worse as they train: 0.32 m at 5k, 1.26 m at 10k, 1.11 m at 15k. Fold W's checkpoints stay at
+0.15-0.18 m.
+
+- Every head breaks in the same stretch, image frames ~486-516. That is where the reconstruction
+  lost 42 cameras.
+- Before it (frames 0-485) the production head tracks best of all: ATE 0.030 m, against 0.041 m
+  for shipped, 0.070 m for deploy and 0.061 m for fold W.
+- A per-pair temporal check found the cause. Pair 504 -> 505 is off by 2 px on every confident
+  pixel, against 0.1-0.2 px elsewhere: a wrong relative pose, which the stereo-scale check cannot
+  see.
+- `check_eiva_gt.py` now stores a per-pair `flow_error`. `EIVA_NoIMU` drops pairs beyond 0.75 px.
+- Both folds are being retrained with this gate (v2) to confirm it out of sample before the
+  production head is retrained.
+
+**Recommendation (pending v2).**
+- Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts mean ATE
+  by 72% against shipped and 39% against deploy, and it is best on every dive. Do not ship the
+  current production checkpoint: it was trained on the bad `plane_tail2` pairs.
 - Outdoor or sky scenes: keep a TartanAir head (shipped or deploy).
 - The fp32-trained 25k head should not be deployed in fp16 / bf16: it breaks on `plane_tail1`.
 
