@@ -20,10 +20,11 @@ floaters; they carry wrong depth, and each one in front of a surface would punch
 test below.
 
 A pixel keeps the nearest projected point (z-buffer); its flow is the displacement of that very point, exact up
-to the reconstruction's own error. Pixels no point lands on are filled from a (2 `--fill` + 1)^2 splat of the
-cloud; their flow moves the pixel centre, back-projected at the filled depth, with the relative pose. Points
-behind a nearer surface still show through holes in it, so a pixel is dropped when it lies more than
-`--occlusion` (relative) behind the nearest depth within `--window` pixels.
+to the reconstruction's own error. Points behind a nearer surface still show through holes in it, so a pixel is
+dropped when it lies more than `--occlusion` (relative) behind the nearest depth within `--window` pixels. Pixels
+left empty - no point lands on them, or the occlusion test rejected theirs - are filled from a (2 `--fill` + 1)^2
+splat of the cloud, i.e. the nearest surface of their neighbourhood, and the occlusion test runs again; their flow
+moves the pixel centre, back-projected at the filled depth, with the relative pose.
 """
 import argparse
 import json
@@ -108,26 +109,33 @@ class Renderer:
             lin = v[idx] * W + u[idx]
             return idx, lin, torch.full((H * W,), float("inf"), device=self.device).scatter_reduce(0, lin, z[idx], "amin")
 
+        def visible(depth: torch.Tensor) -> torch.Tensor:
+            near = -F.max_pool2d(-depth.view(1, 1, H, W), window, stride=1, padding=window // 2).view(-1)
+            return ~(depth > near * (1 + occlusion))
+
         idx, lin, depth = nearest(0, 0)
         # the point that set each pixel's minimum (ties are the same depth, any of them will do)
         winner = torch.full((H * W,), -1, dtype=torch.long, device=self.device)
         hit = z[idx] == depth[lin]
         winner[lin[hit]] = idx[hit]
+        keep = visible(depth)
+        depth = torch.where(keep, depth, float("inf"))
+        winner = torch.where(keep, winner, -1)
         filled = torch.zeros(H * W, dtype=torch.bool, device=self.device)
         if fill > 0:
-            splat = depth.clone()
+            # empty pixels - no point, or a point the occlusion test rejected as seen through a hole - take the nearest
+            # point of their neighbourhood, i.e. the surface in front; the occlusion test then runs on the result
+            splat = torch.where(keep, depth, float("inf"))
             for du in range(-fill, fill + 1):
                 for dv in range(-fill, fill + 1):
-                    if du or dv:
-                        splat = torch.minimum(splat, nearest(du, dv)[2])
+                    splat = torch.minimum(splat, nearest(du, dv)[2])
             filled = torch.isinf(depth) & torch.isfinite(splat)
             depth = torch.where(filled, splat, depth)
-        depth = depth.view(H, W)
-        near = -F.max_pool2d(-depth[None, None], window, stride=1, padding=window // 2)[0, 0]
-        occluded = (depth > near * (1 + occlusion)).view(-1)
-        depth = torch.where(occluded.view(H, W), float("inf"), depth)
-        winner = torch.where(occluded | filled, -1, winner)
-        return depth, winner.view(H, W), (filled & ~occluded).view(H, W)
+            keep = visible(depth)
+            depth = torch.where(keep, depth, float("inf"))
+            winner = torch.where(keep & ~filled, winner, -1)
+            filled &= keep
+        return depth.view(H, W), winner.view(H, W), filled.view(H, W)
 
     def pixel_flow(self, depth: torch.Tensor, mask: torch.Tensor, pose1, pose2) -> torch.Tensor:
         """Flow [2, M] of the pixel centres in `mask`, back-projected at `depth` and moved by the relative pose."""
