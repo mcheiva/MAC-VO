@@ -5,13 +5,20 @@ from Utility.Extensions import OnCallCompiler
 
 @OnCallCompiler()
 def flow_loss(gamma: float, preds: torch.Tensor, gt: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """gamma-weighted L1 over iterations: the mean over elements with a finite target of mask * |pred - gt| (the
+    value `(mask * |pred - gt|).nanmean()` had). Undefined targets (NaN: stereo pixels without depth, EIVA pixels
+    without GT) are zeroed before the subtraction - 0 * NaN in the backward pass would poison every gradient."""
     n_predictions = len(preds)
-    
+    finite = torch.isfinite(gt)
+    use = finite & mask.bool()
+    gt = torch.where(finite, gt, 0.)
+    count = finite.sum().clamp(min=1)
+
     flow_loss = torch.tensor(0.0, device=gt.device)
     for i in range(n_predictions):
         i_weight = gamma**(n_predictions - i - 1)
-        i_loss = (preds[i] - gt).abs()
-        flow_loss += i_weight * (mask * i_loss).nanmean()
+        i_loss = torch.where(use, (preds[i] - gt).abs(), 0.)
+        flow_loss += i_weight * i_loss.sum() / count
 
     return flow_loss
 
