@@ -449,8 +449,18 @@ the runtime feeds the engine). Positions are SE3-aligned to the GT (no scale, as
 | welland (184.1 m) | 0.217 / 2.13 | 0.171 / 1.61 | 0.174 / 1.86 | **0.136 / 1.36** (V) |
 | mean | 0.463 / 11.8 | 0.724 / 15.5 | 0.216 / 5.45 | **0.131 / 3.97** |
 
-- The held-out EIVA head is best on every sequence. Mean ATE drops 72% against shipped and 39%
-  against deploy.
+- Whole-dive `plane_tail2` numbers are chaotic, so this table overstates the gain (see below).
+  Two heads with identical network metrics, fold W v1 and v2, give 0.15 m and 0.74 m there.
+- The stable comparison cuts `plane_tail2` at frame 486, before the stretch where every head
+  breaks. Mean over the five dives, ATE m / frame-to-frame mm:
+  - shipped 0.148 / 3.60
+  - 25k 0.586 / 12.1
+  - deploy 0.142 / 3.56
+  - EIVA held out, v1 0.113 / 3.04
+  - EIVA held out, v2 0.113 / 3.01
+- So the EIVA heads cut ATE by ~24% and frame-to-frame error by ~16% against shipped. They are
+  better on four of five dives; on `plane_tail2` before the cut shipped is best (0.041 m against
+  0.047-0.061 m).
 - The 25k head (trained in fp32) breaks in deployed precision on `plane_tail1`. The deploy head
   (trained in fp16 / bf16) does not, so deployment-precision training matters here.
 - MAC-VO runs are deterministic, so each number is one run. The scripts are in the session
@@ -520,9 +530,9 @@ The production checkpoints give 0.32 / 1.26 / 1.11 m at 5k / 10k / 15k; fold W's
   through the stretch. `cov_scale` (frontend option, a sigma^2 multiplier) tests it.
 
 **Recommendation (pending v2).**
-- Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts mean ATE
-  by 72% against shipped and 39% against deploy, and it is best on every dive. Hard stretches
-  like `plane_tail2`'s still break it, as they break shipped.
+- Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts ATE by
+  ~24% and frame-to-frame error by ~16% against shipped. Hard stretches like `plane_tail2`'s still
+  break it, as they break every head, and how badly is chaotic.
 - Outdoor or sky scenes: keep a TartanAir head (shipped or deploy).
 - The fp32-trained 25k head should not be deployed in fp16 / bf16: it breaks on `plane_tail1`.
 
