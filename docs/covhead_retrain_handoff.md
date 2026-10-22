@@ -566,25 +566,47 @@ three runs agree within a few percent.
 - About 33% better ATE than shipped and 17% better than deploy, in all three runs.
 - Stereo AUSE is 0.373-0.383 in all three, against 0.458 for shipped.
 
-**Recommendation (pending v2).**
-- Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts ATE by
-  ~24% and frame-to-frame error by ~16% against shipped. Hard stretches like `plane_tail2`'s still
-  break it, as they break every head, and how badly is chaotic.
-- Outdoor or sky scenes: keep a TartanAir head (shipped or deploy).
+**EIVA + water head** (`CovHeadEIVA_AllWater`: the production mix +
+`TartanAirV1_Seaside_Train`; `Model/FlowFormerCovEIVAAllWater10-22-13-17-15/15000.pth`).
+
+On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
+
+| head | all 8 | without `Hard_P003` | `Hard_P003` ATE |
+|---|---|---|---|
+| shipped | 1.36 / 0.0120 / 0.062 | 1.46 / - / 0.063 | 0.61 |
+| deploy | 1.33 / 0.0128 / 0.061 | 1.32 / - / 0.061 | 1.42 |
+| water | 1.32 / 0.0116 / 0.055 | 1.41 / - / 0.054 | 0.71 |
+| production v2 | 1.50 / 0.0138 / 0.073 | 1.35 / - / 0.064 | 2.57 |
+| EIVA + water | **1.11 / 0.0116 / 0.054** | **1.15** / - / 0.055 | 0.87 |
+
+- The seaside data removes the EIVA heads' `Hard_P003` failure (2.57 -> 0.87 m, ROE 0.141 ->
+  0.052).
+- It is the best head on held-out TartanAir.
+- On the EIVA dives (in-sample, like the production head) it matches production v1: 0.012 /
+  0.321 / 0.035 m on `plane_mid` / `plane_nose` / `plane_tail1`, 0.132 m on Welland. It breaks in
+  `plane_tail2`'s hard stretch like every in-sample head (1.30 m).
+- It has no held-out EIVA test of its own. Its EIVA half rests on the folds, its water half on
+  the seasidetown hold-out.
+
+**Recommendation.**
+- Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
+  - Its recipe gains ~33% ATE on held-out Welland and ~20% on held-out Vobster against shipped
+    (three training runs each).
+  - It is the best head on held-out TartanAir.
+  - It needs the C++ runtime to read 3 covariance channels (gate 6).
+- Until then, keep the shipped head in the runtime.
 - The fp32-trained 25k head should not be deployed in fp16 / bf16: it breaks on `plane_tail1`.
+- Hard stretches like `plane_tail2`'s (where the photogrammetry also lost the camera) break every
+  head. How a head copes with one varies between training runs. Judge such stretches on several
+  runs, or on perturbations (`cov_scale`), not on one MAC-VO run.
 
 **Open.**
-1. Gate 6: the C++ runtime has to read 3 covariance channels.
-2. `Hard_P003` with the EIVA heads. It is not the sky this time. `StereoTailAnalysis.py
-   --precision fast` on its 300 pairs, keypoints as `CovAwareSelector` picks them:
-   - shipped: 27 confidently wrong stereo keypoints, 7% of them over 80 m;
-   - deploy: 24, 4% over 80 m;
-   - production v2: 49, 86% of them nearer than 5 m and 4% over 80 m.
-
-   The EIVA dives are 1-3 m away, so the underwater data likely makes the head trust near-range
-   stereo, which fails on TartanAir's near water and low-texture walls.
-   `CovHeadEIVA_AllWater` (the production mix + `TartanAirV1_Seaside_Train`) tests whether
-   in-domain near-range water data fixes it. A lower EIVA share is the alternative.
+1. Gate 6: the C++ runtime has to read 3 covariance channels. It must drop its `exp(2 * cov)` and
+   feed sigma_uv into `covariance_2to3` and the selector.
+2. Near-range overconfidence. On `Hard_P003` the production head (without water data) picked
+   2x the confidently wrong stereo keypoints, 86% of them nearer than 5 m (`StereoTailAnalysis.py
+   --precision fast`). The water data fixes the trajectory there. Re-running the tail analysis on
+   the EIVA + water head would confirm it at the keypoints.
 3. Fold W's sigma is too wide on Vobster: Welland's GT is noisier. Down-weighting that noise
    could help:
    - a per-frame GT noise floor from `check_eiva_gt.py`, or
