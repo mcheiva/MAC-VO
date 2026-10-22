@@ -610,6 +610,38 @@ On the 8 held-out seasidetown sequences, deployed precision, ATE m / RTE / ROE:
     yet the trajectories are better.
   - Fold W + water gets through `plane_tail2`'s hard stretch (whole dive 0.33 m, shipped 1.62 m).
 
+**GT v2** (`D:/Datasets/EIVA_GT_v2`, `make_eiva_gt.py` defaults). The v1 renders had speckle and small square
+holes. Two causes, both fixed:
+
+1. **Reconstruction floaters**, 1.8-2.6% of each cloud. They carried wrong depth, and each punched a 7x7 hole through
+   the occlusion test. Removed by statistical outlier removal (mean distance to the 8 nearest neighbours above
+   mean + 2 std).
+2. **Pixels no point lands on.** Filled from a 3x3 splat. The fill runs after the occlusion test, so pixels whose own
+   point was a see-through reject take the surface in front, then the test runs again; their flow back-projects the
+   pixel centre.
+
+Mean coverage per dive, v1 -> v2:
+
+| | plane_mid | plane_nose | plane_tail1 | plane_tail2 | welland |
+|---|---|---|---|---|---|
+| v1 | 50% | 42% | 41% | 48% | 50% |
+| v2 | 58% | 54% | 54% | 61% | 71% |
+
+- The consistency checks pass as for v1.
+- Filled pixels agree with the frozen FlowFormer as well as the others within each confidence band. They
+  concentrate in the hard, sparsely reconstructed regions.
+
+Two alternatives were tested on held-out frames against the frozen FlowFormer, and neither is better:
+
+- **Front-surface averaging** (mean of the points within 0.3-1% of the nearest): stereo error on confident pixels
+  rises from 0.070 to 0.087-0.115 px, and coverage drops without the fill. The extra points in a pixel lie mostly
+  behind the visible surface.
+- **Oriented surfel splatting** (ray-disc depth, radius = point spacing, back-face culling when the normals allow):
+  - on plane_mid, equal (0.070 against 0.071 px; 12 pixels differ by more than 5%);
+  - on plane_tail2, worse (0.214 against 0.193 px), because noisy normals tilt discs past silhouettes.
+
+Decision: v2 as rendered. The fold trainings below use it.
+
 **Recommendation.**
 - Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
   - Its recipe gains ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
