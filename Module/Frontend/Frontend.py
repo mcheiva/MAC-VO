@@ -177,6 +177,14 @@ class FlowFormerCovFrontend(IFrontend):
         self.model = model
         # Optional multiplier on every covariance the frontend emits (stereo and match); 1 is the head's own output.
         self.cov_scale = float(getattr(self.config, "cov_scale", 1.0))
+        # cov_offdiag: false drops sigma_uv of 3-channel heads (ablation: the same marginals, no correlation).
+        self.cov_offdiag = bool(getattr(self.config, "cov_offdiag", True))
+
+    def emitted_cov(self, est_cov: torch.Tensor) -> torch.Tensor:
+        est_cov = est_cov.float() * self.cov_scale
+        if not self.cov_offdiag and est_cov.size(1) == 3:
+            est_cov = torch.cat([est_cov[:, :2], torch.zeros_like(est_cov[:, 2:])], dim=1)
+        return est_cov
     
     @property
     def provide_cov(self) -> tuple[bool, bool]:
@@ -210,7 +218,7 @@ class FlowFormerCovFrontend(IFrontend):
         est_flow, est_cov = self.model.inference(input_A, input_B)
         
         est_flow: torch.Tensor = est_flow.float()
-        est_cov : torch.Tensor = est_cov.float() * self.cov_scale
+        est_cov : torch.Tensor = self.emitted_cov(est_cov)
         
         return self.inference_2_depth(est_flow, est_cov, frame, self.config.enforce_positive_disparity)
     
@@ -226,7 +234,7 @@ class FlowFormerCovFrontend(IFrontend):
         est_flow, est_cov = self.model.inference(input_A, input_B)
         
         est_flow: torch.Tensor = est_flow.float()
-        est_cov : torch.Tensor = est_cov.float() * self.cov_scale
+        est_cov : torch.Tensor = self.emitted_cov(est_cov)
         
         return (
             self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t2, self.config.enforce_positive_disparity),
@@ -243,7 +251,7 @@ class FlowFormerCovFrontend(IFrontend):
         est_flow, est_cov = self.model.inference(input_A, input_B)
         
         est_flow: torch.Tensor = est_flow.float()
-        est_cov : torch.Tensor = est_cov.float() * self.cov_scale
+        est_cov : torch.Tensor = self.emitted_cov(est_cov)
 
         return (
             self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t1, self.config.enforce_positive_disparity),
@@ -260,7 +268,7 @@ class FlowFormerCovFrontend(IFrontend):
             "enc_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
             "enforce_positive_disparity": lambda b: isinstance(b, bool),
             "decoder_depth" : lambda v: isinstance(v, int)
-        }, allow_excessive_cfg=True)    # optional: cov_scale
+        }, allow_excessive_cfg=True)    # optional: cov_scale, cov_offdiag
 
 
 class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
@@ -293,7 +301,7 @@ class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
         time.sleep(0.0) # Hint OS scheduler for context switch
         
         est_flow = est_flow.float()
-        est_cov  = est_cov.float() * self.cov_scale
+        est_cov  = self.emitted_cov(est_cov)
         
         return (
             self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t2, self.config.enforce_positive_disparity),
