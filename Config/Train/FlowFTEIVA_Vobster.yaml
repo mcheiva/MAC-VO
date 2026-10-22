@@ -26,8 +26,9 @@ Model:
 
   critical_params: []
   transformer: "latentcostformer"
-  # Fine-tune the recurrent Cholesky head of the first run (FlowFormerCovChol, 25k steps); same recipe as
-  # CovHeadCholDeploy plus EIVA underwater data with photogrammetry GT (trained on Vobster, Welland held out).
+  # Start from the recurrent Cholesky run (FlowFormerCovChol, 25k steps; its matcher is the shipped one). The head
+  # stays frozen in flow mode: retrain it on the fine-tuned matcher afterwards. Same data as CovHeadEIVA_VobsterWater_v2
+  # (EIVA v2 GT trained on Vobster, Welland held out, + the seaside oversampling).
   restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
 
   # latentcostformer
