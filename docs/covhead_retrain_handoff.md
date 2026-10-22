@@ -544,6 +544,18 @@ The production checkpoints give 0.32 / 1.26 / 1.11 m at 5k / 10k / 15k; fold W's
   - Two training runs that differ by 2% of Welland pairs land on either side of the edge. How a
     head copes with this stretch varies between training runs, so judge it on several runs or
     seeds, not one.
+  - A third fold W run (`CovHeadEIVA_Welland_seed2`, seed 4321) is robust again: median 0.21 m,
+    0/5 runs over 0.4 m. So two of three Welland-trained runs survive the stretch, against none
+    of the shipped and deploy runs.
+
+**Run-to-run variance of fold W (held out on Vobster, `plane_tail2` cut at frame 486).** Mean ATE:
+
+| | shipped | deploy | v1 | v2 | seed 2 |
+|---|---|---|---|---|---|
+| mean ATE (m) | 0.131 | 0.134 | 0.108 | 0.104 | 0.105 |
+
+The ~20% gain over shipped and deploy holds in all three runs. The network-level metrics of the
+three runs agree within a few percent.
 
 **Recommendation (pending v2).**
 - Underwater (the EIVA use case): an EIVA-trained head. On held-out dives the recipe cuts ATE by
