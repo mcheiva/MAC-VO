@@ -51,6 +51,12 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         self.pair_ok = ~(flow_error > getattr(cfg, "max_flow_error", 0.75))
         self.consistent = (np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)) & self.pair_ok \
                           & np.concatenate([[True], self.pair_ok[:-1]])                       # NaN ratio (no GT) -> False
+        # frame_range [start, stop): only this contiguous block of GT frames, e.g. to fine-tune the matcher and train the
+        # covariance head on disjoint frames of a site. The gates keep one frame past the block for its last pair.
+        if (frame_range := getattr(cfg, "frame_range", None)) is not None:
+            start, stop = int(frame_range[0]), min(int(frame_range[1]), len(self.frames))
+            self.frames = self.frames[start:stop]
+            self.pair_ok, self.consistent = self.pair_ok[start:stop + 1], self.consistent[start:stop + 1]
         # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
         self.use_filled = bool(getattr(cfg, "use_filled", True))
         # teacher: Scripts/Dataset/make_eiva_teacher.py output. Pixels without a target take the original network's
@@ -116,4 +122,4 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher, water_disparity, water_margin
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher, water_disparity, water_margin, frame_range
