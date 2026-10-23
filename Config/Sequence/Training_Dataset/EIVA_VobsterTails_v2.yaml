@@ -1,0 +1,11 @@
+# Vobster plane_tail1 / plane_tail2, once: held out by the mixed configs
+-   type: EIVA_NoIMU
+    name: eiva_plane_tail1
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail1
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail1
+-   type: EIVA_NoIMU
+    name: eiva_plane_tail2
+    args:
+        root: D:/Datasets/EIVA/vobster_quay/plane_tail2
+        gt: D:/Datasets/EIVA_GT_v2/plane_tail2
