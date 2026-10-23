@@ -3,6 +3,7 @@ import json
 import torch
 import numpy as np
 import pypose as pp
+from scipy.ndimage import distance_transform_edt
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -27,6 +28,8 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
 
     `teacher` (Scripts/Dataset/make_eiva_teacher.py output) fills the pixels without a target with the original
     network's flow and depth, for matcher fine-tunes: open water has no target and the stereo drifts there otherwise.
+    `water_disparity` instead gives open water (farther than `water_margin` px from any GT pixel) a far stereo
+    target, the convention synthetic data has for the sky.
     """
     @classmethod
     def name(cls) -> str: return "EIVA_NoIMU"
@@ -54,6 +57,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         # flow and depth (from its disparity), so a flow fine-tune keeps its behaviour in open water. Matcher
         # fine-tunes only: the covariance head has to learn real errors.
         self.teacher = Path(cfg.teacher) if getattr(cfg, "teacher", None) else None
+        # water_disparity: open water (no GT pixel within water_margin px) gets this stereo target (px), i.e. far, as
+        # synthetic data has for the sky; MAC-VO's selector skips points beyond fx b / 1 px. Matcher fine-tunes only.
+        self.water_disparity = getattr(cfg, "water_disparity", None)
+        self.water_margin = float(getattr(cfg, "water_margin", 24))
         super().__init__(len(self.frames))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -83,6 +90,9 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
             depth = torch.where((depth <= 0) & (disparity > 0.5), self.K[0, 0, 0] * self.baseline / disparity.clamp(min=0.5), depth)
             if "flow" in t:
                 flow = torch.where(torch.isfinite(flow), flow, torch.tensor(t["flow"], dtype=torch.float32).unsqueeze(0))
+        if self.water_disparity is not None:
+            water = torch.from_numpy(distance_transform_edt(gt["depth"] <= 0) > self.water_margin)[None, None]
+            depth = torch.where(water, self.K[0, 0, 0] * self.baseline / float(self.water_disparity), depth)
         return StereoFrame(
             idx     = [local_index],
             time_ns = [index * 1000],       # FIXME: a fake timestamp (as GeneralStereo).
@@ -106,4 +116,4 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher, water_disparity, water_margin
