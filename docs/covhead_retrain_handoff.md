@@ -858,7 +858,20 @@ synthetic-sky convention) on Welland's open water (no GT within 24 px), the teac
 
 The matching gain stays: held-out Vobster temporal 0.977 px (-10%), stereo 0.691 px (-24%), best 20% stereo 0.077
 px. An explicit physical label carries over to water the network has not seen; copying the old network's output does
-not. Trajectories with its retrained head: pending.
+not. Trajectories with its retrained head, held-out Vobster, split protocol, ATE m / frame-to-frame mm:
+
+| | plane_mid | plane_nose | plane_tail1 | plane_tail2 |
+|---|---|---|---|---|
+| shipped, 0.25 px | 0.018 / 2.35 | 0.078 / 5.52 | 0.060 / 2.92 | 0.048 / 4.12 |
+| v2 head, original matcher, 0.25 px | 0.015 / 1.81 | 0.041 / 3.71 | 0.040 / 2.54 | 0.044 / 3.80 |
+| plain fine-tune + head, 0.25 px | 0.007 / 1.46 | 0.195 / 9.80 | 2.414 / 47.3 | 0.533 / 19.0 |
+| teacher + far water + head, 0.25 px | 0.007 / 1.33 | 0.054 / 4.46 | 2.317 / 45.0 | 0.058 / 5.57 |
+| teacher + far water + head, 0.10 px | 0.005 / 1.29 | 0.054 / 4.10 | 2.326 / 45.3 | 0.051 / 5.40 |
+
+plane_tail2 and plane_nose recover, plane_mid is the best result so far, but plane_tail1 still breaks, now later: a
+~53 deg heading change between frames 320 and 360 (frame 251 is tracked). There the open water is far and similar for
+both matchers (frame 345: 15-18 px), so this is not the hallucination; the head's stereo overconfidence on the
+fine-tuned matcher (tail > 9 11.6% against 4.4%) is the remaining suspect.
 
 Also under test (model side only):
 - synthetic underwater augmentation of TartanAir (`underwater_aug`, `Train/MatchingNet/underwater.py`: the revised
