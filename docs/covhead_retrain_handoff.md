@@ -686,11 +686,52 @@ How the frontend's covariance reaches MAC-VO:
    - On held-out TartanAir (EIVA + water head) 0.10 px is neutral: ATE 1.15 against 1.11 m, RTE 0.0113 against
      0.0116.
    - Recommended runtime setting: 0.10 px, also with the shipped head. Compare all heads at 0.10 px from here on.
+   - 0.05 px (EIVA + water folds): Welland 0.108 / 1.31, Vobster 0.104 / 3.35, so no worse anywhere; the shipped
+     head at 0.05 px and held-out TartanAir at 0.05 px are queued.
 
-**Recommendation.**
+**Evaluation protocol correction: breaks in the GT trajectory (2026-10-23).** The per-pair GT check
+(`check_eiva_gt.py`'s `flow_error`, the frozen FlowFormer against the rendered flow) is ~0.2 px almost everywhere, but
+a few pairs are far off:
+
+- `plane_nose` 513 -> 514: 318 px. The vehicle swings ~20 deg in 1.2 s with half the image open water. Either the
+  GT pose or the matcher fails there; every head's trajectory turns ~35 deg against the GT within 20 frames.
+- `plane_tail2`: two pairs at 59 and 8 px, and 42 frames without a GT pose. This is the "hard stretch" the cut at
+  frame 486 removed.
+- Welland 1863 -> 1871: three pairs at 8-11 px.
+
+With one SE3 alignment per dive, every frame after a break counts against every head, and these few frames dominated
+the averages. `plane_nose`'s last 50 frames alone made up most of the "Vobster mean". New protocol
+(`macvo/settle_head.py --split`):
+
+- Split each dive at every pair whose GT check is above 3 px and at every frame without a GT pose.
+- Align each segment on its own; drop segments shorter than 10 frames.
+- ATE: RMS over all frames. Frame-to-frame: mean over the pairs inside segments.
+- No cut, and the rule uses the GT check only, never a head's result.
+
+Held-out EIVA, ATE m / frame-to-frame mm, old protocol -> split:
+
+| | Welland | Vobster mean |
+|---|---|---|
+| shipped, 0.25 px | 0.217 / 2.13 -> 0.119 / 1.53 | 0.131 / 3.97 -> 0.051 / 3.73 |
+| shipped, 0.10 px | 0.122 / 1.41 -> **0.080** / 1.19 | 0.119 / 3.83 -> 0.038 / 3.50 |
+| deploy, 0.10 px | 0.129 / 1.45 -> 0.112 / 1.34 | 0.121 / 3.69 -> 0.041 / 3.19 |
+| EIVA + water fold, 0.25 px | 0.145 / 1.51 -> 0.115 / 1.36 | 0.111 / 3.42 -> 0.038 / 2.73 |
+| EIVA + water fold, 0.10 px | 0.118 / 1.34 -> 0.093 / 1.20 | 0.104 / 3.36 -> 0.032 / 2.61 |
+| EIVA + water fold, 0.05 px | 0.108 / 1.31 -> 0.085 / **1.17** | 0.104 / 3.35 -> **0.029 / 2.54** |
+| EIVA only folds (3 runs), 0.25 px | 0.111-0.116 / 1.27-1.32 | 0.031-0.042 / 2.61-2.83 |
+
+- The floor stays the robust gain, for every head and under both protocols.
+- The EIVA-tuned head's own trajectory gain is smaller than reported above:
+  - Vobster: -16% ATE / -25% frame-to-frame against shipped at 0.10 px;
+  - Welland: none. Shipped at 0.10 px has the better ATE (0.080 against 0.093), and frame-to-frame is equal.
+- The network-level gains (NLL, calibration, ranking) are unaffected.
+- The remaining large errors sit where the matcher itself fails, which is what the flow fine-tune targets.
+- Report both protocols from here on, the split one as primary.
+
+**Recommendation** (written before the protocol correction; to be revised with the GT v2 and inlier results).
 - Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
-  - Its recipe gains ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
-    shipped. Measured on its own folds and on three EIVA-only runs per site.
+  - Under the old protocol its recipe gained ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
+    shipped at 0.25 px. Under the split protocol at 0.10 px the gain is on Vobster only (see above).
   - It is the best head on held-out TartanAir.
   - It needs the C++ runtime to read 3 covariance channels (gate 6).
 - Until then, keep the shipped head in the runtime.
