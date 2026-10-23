@@ -25,6 +25,10 @@ Wrapper conventions (must match the consumer pipeline):
     covariance entries [sigma_uu, sigma_vv, sigma_uv] in fp32 in-graph
     (handoff 7.4): sigma^2 = exp(2 c) reaches ~1.6e5, beyond fp16. The
     consumer must then read 3 channels and skip its exp (handoff 7.6).
+    --cov-layout log-sigma instead emits the shipped layout for any head:
+    log sigma per axis of the marginal variances (sigma_uv dropped; it does
+    not change MAC-VO's trajectories), so the engine drops into the shipped
+    runtime unchanged.
   * Dynamic batch only; H=W=704 fixed (matches the trained checkpoint padding).
   * Trace at batch=1 to fit an 8 GB GPU during torch.onnx.export.
 
@@ -60,7 +64,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "Module"))
 from Network.FlowFormer.configs.submission import get_cfg   # noqa: E402
 from Network.FlowFormerCov import build_flowformer           # noqa: E402
-from Network.FlowFormerCov.covhead import cov_entries        # noqa: E402
+from Network.FlowFormerCov.covhead import cov_entries, marginal_log_sigma        # noqa: E402
 
 
 _DTYPES = {
@@ -85,7 +89,7 @@ class FlowFormerCovWrapper(torch.nn.Module):
     Input normalisation intentionally lives OUTSIDE the graph.
     """
 
-    def __init__(self, mode: str = "fast", decoder_depth: int = 12, ckpt: str = _SHIPPED_CKPT):
+    def __init__(self, mode: str = "fast", decoder_depth: int = 12, ckpt: str = _SHIPPED_CKPT, cov_layout: str = "auto"):
         super().__init__()
         if mode not in _DTYPES:
             raise ValueError(f"Unknown mode {mode!r} (expected 'fast' or 'precise')")
@@ -104,8 +108,10 @@ class FlowFormerCovWrapper(torch.nn.Module):
         model.eval()
         model.to(device)
         model.load_ddp_state_dict(state)    # adapts the covariance head to the checkpoint's layout
-        # Shipped layout: log sigma per axis, the MACVO_TRT runtime applies exp(2 * cov).
+        # Shipped layout: log sigma per axis, the MACVO_TRT runtime applies exp(2 * cov). cov_layout "log-sigma"
+        # emits it for any head (marginal_log_sigma); "auto" keeps covariance entries for heads other than the shipped one.
         self.log_sigma = model.memory_decoder.log_sigma_output
+        self.marginal = cov_layout == "log-sigma" and not self.log_sigma
         self.model = model
 
     def forward(self, image1, image2):
@@ -118,6 +124,8 @@ class FlowFormerCovWrapper(torch.nn.Module):
         if self.log_sigma:
             # Return raw log-uncertainty (NOT exp'd); consumer applies exp(2*cov).
             return flow_up, flow_raw.float(), cov_up.float(), cov_raw.float()
+        if self.marginal:
+            return flow_up, flow_raw.float(), marginal_log_sigma(cov_up.float()), marginal_log_sigma(cov_raw.float())
         return flow_up, flow_raw.float(), cov_entries(cov_up.float()), cov_entries(cov_raw.float())
 
 
@@ -126,12 +134,14 @@ def export(onnx_path: str | None = None,
            run_onnxsim: bool = True,
            mode: str = "fast",
            decoder_depth: int = 12,
-           ckpt: str = _SHIPPED_CKPT) -> None:
+           ckpt: str = _SHIPPED_CKPT,
+           cov_layout: str = "auto") -> None:
     if onnx_path is None:
         onnx_path = _DEFAULT_OUT[mode]
 
-    model = FlowFormerCovWrapper(mode=mode, decoder_depth=decoder_depth, ckpt=ckpt)
+    model = FlowFormerCovWrapper(mode=mode, decoder_depth=decoder_depth, ckpt=ckpt, cov_layout=cov_layout)
     print(f"Checkpoint {ckpt}: cov = " + ("log sigma per axis, the consumer applies exp(2 * cov)" if model.log_sigma
+                                          else "marginal log sigma per axis (shipped layout)" if model.marginal
                                           else "[sigma_uu, sigma_vv, sigma_uv] in fp32"), flush=True)
 
     H = W = 704
@@ -227,6 +237,8 @@ def main() -> int:
                    help="Decoder iterations (weights are shared across iterations)")
     p.add_argument("--ckpt", default=_SHIPPED_CKPT,
                    help="Frontend checkpoint; any head but the shipped one exports covariance entries")
+    p.add_argument("--cov-layout", choices=("auto", "log-sigma"), default="auto",
+                   help="log-sigma: the shipped layout (log sigma per axis) for any head, a drop-in engine")
     args = p.parse_args()
 
     export(onnx_path=args.onnx,
@@ -234,7 +246,8 @@ def main() -> int:
            run_onnxsim=not args.no_onnxsim,
            mode=args.mode,
            decoder_depth=args.decoder_depth,
-           ckpt=args.ckpt)
+           ckpt=args.ckpt,
+           cov_layout=args.cov_layout)
     return 0
 
 

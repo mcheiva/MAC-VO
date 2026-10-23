@@ -21,6 +21,19 @@ def cov_entries(c: torch.Tensor) -> torch.Tensor:
     return torch.cat([l11 * l11, l21 * l21 + l22 * l22, l11 * l21], dim=1)
 
 
+def marginal_log_sigma(c: torch.Tensor) -> torch.Tensor:
+    """
+    Decoder output c [B, C, H, W] -> log sigma per axis [B, 2, H, W], the shipped head's layout (the consumer applies
+    exp(2 * cov)). C = 2 is that already; for C = 3, log sigma_u = c1 and log sigma_v = log sqrt(L21^2 + L22^2)
+    = c2 + 0.5 log1p((c3 e^-c2)^2). sigma_uv is dropped, so an engine of any head drops into the shipped runtime.
+    """
+    if c.size(1) == 2:
+        return c
+    assert c.size(1) == 3, "marginal_log_sigma takes 2 (log sigma) or 3 (Cholesky) channels"
+    c1, c2, c3 = c[:, 0:1], c[:, 1:2], c[:, 2:3]
+    return torch.cat([c1, c2 + 0.5 * torch.log1p((c3 * torch.exp(-c2)) ** 2)], dim=1)
+
+
 def correlation_peak_stats(corr: torch.Tensor) -> torch.Tensor:
     """Matching-confidence cues of a correlation window [B, K, H, W] (fp32): best score, its margin over the
     second best, and the entropy of the softmax over the window (Hu & Mordohai 2012 survey such measures)."""

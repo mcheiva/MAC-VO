@@ -6,6 +6,9 @@
     python Scripts/Parity/compare.py --onnx MACVO_FrontendCov.onnx
     python Scripts/Parity/compare.py --trt Chol.plan --ref runs/ref_chol   # retrained head (make_reference.py --ckpt)
 
+An engine exported with Export.py --cov-layout log-sigma (2 channels) compares against a covariance-entries
+reference as is: log_sigma_rho maps both to log sigma per axis; drho then measures only the dropped sigma_uv.
+
 --pairing b2 runs stereo+temporal of a frame as one batch-2 call in the production layout
 (img1=[L_t, L_{t-1}], img2=[R_t, L_t]); kf stays batch-1. Default b1 runs every pair alone.
 """
