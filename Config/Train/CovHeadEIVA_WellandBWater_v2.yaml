@@ -17,6 +17,10 @@ Model:
   beta: 0.0
   # Alternate temporal and stereo (left/right, target -fx b / depth) batches (handoff 5.4).
   stereo: True
+  # Negatives: EIVA's open water (no GT within water_margin px) has no correspondence; push sigma above water_sigma px
+  # there (loss.water_hinge), so MAC-VO neither selects nor trusts it. The likelihood never sees these pixels.
+  water_sigma: 32.0
+  water_margin: 24
   # Train in the deployment precision (MACVO_Fast / Export.py --mode fast); the covariance branch keeps fp32 weights.
   encoder_dtype: fp16
   decoder_dtype: bf16
