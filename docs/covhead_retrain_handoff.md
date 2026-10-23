@@ -846,11 +846,29 @@ bright haze, the stereo reads Vobster's dark green water as near. Each fine-tune
 seen. Colour is part of the trigger, not all of it: tinting plane_tail1 #251 towards Welland's haze halves the
 hallucination (105 -> 50 px); tinting Welland #1200 green does not cause one (21.5 px).
 
-Next (model side only): `water_disparity` (a far stereo target for open water, the synthetic sky convention) is
-training, with a water gate before the head (`macvo/flowft_gated.sh`). If it does not generalise either, synthetic
-underwater augmentation of TartanAir (attenuation and backscatter from the GT depth, random water colour and turbidity,
-light falloff) would teach "water is far" across appearances. Any matcher fine-tune needs the water check on a new
-site before release (`Scripts/Dataset/check_eiva_water.py`).
+**A far stereo target for open water generalises.** `EIVA_NoIMU`'s `water_disparity` (0.25 px, i.e. far: the
+synthetic-sky convention) on Welland's open water (no GT within 24 px), the teacher elsewhere
+(`FlowFTEIVA_Welland_teacherwater`). Open-water disparity on held-out plane_tail1, px (m):
+
+| frame | original | plain fine-tune | teacher | teacher + far water |
+|---|---|---|---|---|
+| 240 | 16.9 (4.6) | 54.7 (1.4) | 85.1 (0.9) | 20.5 (3.8) |
+| 251 | 14.1 (5.6) | 103.4 (0.8) | 105.0 (0.7) | 33.6 (2.3) |
+| 252 | 10.1 (7.7) | 89.7 (0.9) | 114.8 (0.7) | 27.3 (2.9) |
+
+The matching gain stays: held-out Vobster temporal 0.977 px (-10%), stereo 0.691 px (-24%), best 20% stereo 0.077
+px. An explicit physical label carries over to water the network has not seen; copying the old network's output does
+not. Trajectories with its retrained head: pending.
+
+Also under test (model side only):
+- synthetic underwater augmentation of TartanAir (`underwater_aug`, `Train/MatchingNet/underwater.py`: the revised
+  underwater image formation model of Akkaynak & Treibitz 2018 from the GT depth, random water per pair);
+- covariance negatives on open water (`water_sigma`, `loss.water_hinge`): sigma pushed above 32 px where there is
+  no correspondence. The v2 head's water sigma is 19-26 px at the median but 4-5 px at the 10th percentile, the end
+  the selector picks from (the keypoints that broke plane_tail1 had ~5 px);
+- a mixed split (Welland + Vobster plane_mid / plane_nose, plane_tail1 / plane_tail2 held out).
+
+Any matcher fine-tune needs the water check on a new site before release (`Scripts/Dataset/check_eiva_water.py`).
 
 **The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
 smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
