@@ -788,6 +788,51 @@ Network level on the held-out site (scored on v2 GT):
   head. How a head copes with one varies between training runs. Judge such stretches on several
   runs, or on perturbations (`cov_scale`), not on one MAC-VO run.
 
+**Fine-tuning the matcher on EIVA (2026-10-23).** `FlowFTEIVA_<fold>` (`--training_mode flow`): the 25k run's
+weights, the Twins image encoders frozen (`flow_trainable: decoder+cost`, 7.65 M trainable), fp32, batch 2 (batch 4
+pages at 24 GB), 20k steps, lr 2.5e-5, the EIVA + water data of the head folds (GT v2). About 2.8 h per fold.
+
+Mean flow error (px) on held-out data, deployed precision, original matcher -> fine-tuned:
+
+| | fold W (held out: Vobster) | fold V (held out: Welland) |
+|---|---|---|
+| other EIVA site, temporal | 1.087 -> 0.989 (-9%) | 0.765 -> 0.710 (-7%) |
+| other EIVA site, stereo | 0.910 -> 0.665 (-27%) | 3.67 -> 2.86 (-22%) |
+| TartanAir val (15 seq.), temporal / stereo | -21% / -41% | -22% / -47% |
+| seaside holdout, temporal / stereo | -21% / -33% | -20% / -39% |
+
+The oracle's best 20% of pixels also improve (stereo on Vobster 0.096 -> 0.080 px), and TartanAir does not forget.
+The head has to be retrained on the new matcher: the old head's ranking collapses on it (temporal AUSE 0.11 -> 0.23).
+
+**But the trajectories break.** Fold W, matcher fine-tuned + v2 head retrained on it, held-out Vobster, split
+protocol, 0.10 px: plane_mid 0.006 m (best so far), but plane_nose 0.20 m, plane_tail1 2.43 m, plane_tail2 0.57 m
+(last night's v2 head: 0.028 / 0.033 / 0.038). Ruled out, each on the three failing dives:
+
+- the floor (0.25 px: the same);
+- precision (fp32 encoder / decoder: the same);
+- the head (fine-tuned matcher + last night's head: breaks as well);
+- head overconfidence (cov_scale 2: the same);
+- the image resize (INTER_AREA as in training instead of the evaluation's antialiased bilinear: the same).
+
+**Cause: the fine-tuned stereo hallucinates near surfaces in open water.** Instrumented MAC-VO run on plane_tail1
+(`macvo/debug_kp.py`, `motion_check.py`):
+
+- At the break (frames 251 -> 253 the estimated step is 25 / 12 mm against 83 / 46 mm GT), half of the 200 keypoints
+  have no GT. Their flows are 37-62 px off the flow the true motion implies with their depth (median depth 0.8 m,
+  the wreck is at ~2 m). sigma ~5 px: 1% of the weight, but 100% of the weighted squared residual.
+- The keypoints with GT are accurate (flow 0.18 px, disparity 0.22 px median).
+- Last night's model picks as many keypoints without GT, but at ~5 m depth they agree with the true motion to ~2 px.
+- Dense disparity where the GT has none (open water, haze): original 14-17 px (~5 m), fine-tuned 40-87 px (0.9-1.9
+  m), 66-76% nearer than 2.6 m. On the GT pixels both agree (24-36 px).
+
+Open water has no target in the EIVA GT, so the fine-tune never saw it, and the network's stereo drifted there towards
+the near-range disparities of everything it was supervised on. The network-level evaluation could not see it: it
+scores only pixels with GT. Water-heavy dives break; plane_mid, where the wreck fills the view, improves.
+
+**Fix under test: teacher targets.** `Scripts/Dataset/make_eiva_teacher.py` stores the original network's flow and
+disparity per GT frame; `EIVA_NoIMU`'s `teacher` option fills every pixel without a target with them (matcher
+fine-tunes only; the head trains without). `FlowFTEIVA_<fold>_teacher` is the same fine-tune with the teacher.
+
 **Open.**
 1. Gate 6: the C++ runtime has to read 3 covariance channels. It must drop its `exp(2 * cov)` and
    feed sigma_uv into `covariance_2to3` and the selector.
