@@ -829,9 +829,34 @@ Open water has no target in the EIVA GT, so the fine-tune never saw it, and the 
 the near-range disparities of everything it was supervised on. The network-level evaluation could not see it: it
 scores only pixels with GT. Water-heavy dives break; plane_mid, where the wreck fills the view, improves.
 
-**Fix under test: teacher targets.** `Scripts/Dataset/make_eiva_teacher.py` stores the original network's flow and
-disparity per GT frame; `EIVA_NoIMU`'s `teacher` option fills every pixel without a target with them (matcher
-fine-tunes only; the head trains without). `FlowFTEIVA_<fold>_teacher` is the same fine-tune with the teacher.
+**Teacher targets keep the training site's water, not a new site's.** `Scripts/Dataset/make_eiva_teacher.py` stores
+the original network's flow and disparity per GT frame; `EIVA_NoIMU`'s `teacher` option fills every pixel without a
+target with them (matcher fine-tunes only; the head trains without). Fold W with the teacher (`FlowFTEIVA_Welland_teacher`):
+
+- On the GT pixels it keeps the gain: held-out Vobster temporal 0.970 px (-11%), stereo 0.698 px (-23%), best 20%
+  stereo 0.076 px.
+- On Welland's own water it stays at the original's disparity (17.7 / 21.3 px against 19.4 / 24.7 px; the plain
+  fine-tune was at 12.9 / 14.1 px, so Welland's water was never the problem).
+- On held-out Vobster's water it hallucinates as before: plane_tail1 #240 / #251 / #252 at 85 / 105 / 115 px
+  (0.7-0.9 m; original 17 / 14 / 10 px, plain fine-tune 55 / 103 / 90 px).
+
+So the failure is generalisation to an unseen kind of water, not drift on the training frames: fine-tuned on Welland's
+bright haze, the stereo reads Vobster's dark green water as near. Each fine-tune handles the water of its own site
+(fold V on plane_tail1 #251: 22 px), and only the original, trained on synthetic data, is robust to water it has not
+seen. Colour is part of the trigger, not all of it: tinting plane_tail1 #251 towards Welland's haze halves the
+hallucination (105 -> 50 px); tinting Welland #1200 green does not cause one (21.5 px).
+
+Next (model side only): `water_disparity` (a far stereo target for open water, the synthetic sky convention) is
+training, with a water gate before the head (`macvo/flowft_gated.sh`). If it does not generalise either, synthetic
+underwater augmentation of TartanAir (attenuation and backscatter from the GT depth, random water colour and turbidity,
+light falloff) would teach "water is far" across appearances. Any matcher fine-tune needs the water check on a new
+site before release (`macvo/../eiva_gt/water_disp.py`).
+
+**The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
+smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
+held-out stereo tail > 9 at 12-13% (v2 head on the original matcher: 4-9%), median calibration 2.4 (1.39 calibrated),
+sigma^2 ~1.7x too small. `EIVA_NoIMU`'s `frame_range` allows cross-fitting: fine-tune the matcher on one set of
+blocks of a site, train the head on the others.
 
 **Open.**
 1. Gate 6: the C++ runtime has to read 3 covariance channels. It must drop its `exp(2 * cov)` and
