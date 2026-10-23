@@ -701,7 +701,7 @@ a few pairs are far off:
 
 With one SE3 alignment per dive, every frame after a break counts against every head, and these few frames dominated
 the averages. `plane_nose`'s last 50 frames alone made up most of the "Vobster mean". New protocol
-(`macvo/settle_head.py --split`):
+(`Scripts/Dataset/eval_eiva_trajectory.py`, the default; `--no-split [--cut 486]` gives the old numbers):
 
 - Split each dive at every pair whose GT check is above 3 px and at every frame without a GT pose.
 - Align each segment on its own; drop segments shorter than 10 frames.
