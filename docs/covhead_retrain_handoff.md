@@ -756,7 +756,7 @@ Network level on the held-out site (scored on v2 GT):
 
 1. **GT v2 against v1: a draw on trajectories, better ranking.** v2 has the better ATE on three of the four fold /
    floor cells, v1 the better frame-to-frame on Vobster; the gaps are within run-to-run noise (three EIVA-only fold
-   runs per site spread by 5-30% under the split protocol). Keep v2: the flow fine-tune trains on it.
+   runs per site spread by 5% (Welland) and 35% (Vobster) in ATE under the split protocol). Keep v2: the flow fine-tune trains on it.
 2. **The inlier head is rejected.** It ranks marginally better, but its output to MAC-VO (Sigma / p) has more
    pixels beyond the 99% bound than the 3-channel head (tail > 9: temporal 4.2% against 3.5% on Vobster, stereo
    9.4% against 8.8% on Welland). It is level on Vobster and worse on Welland. Down-weighting by the inlier
