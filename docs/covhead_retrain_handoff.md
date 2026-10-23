@@ -728,13 +728,61 @@ Held-out EIVA, ATE m / frame-to-frame mm, old protocol -> split:
 - The remaining large errors sit where the matcher itself fails, which is what the flow fine-tune targets.
 - Report both protocols from here on, the split one as primary.
 
-**Recommendation** (written before the protocol correction; to be revised with the GT v2 and inlier results).
-- Ship `CovHeadEIVA_AllWater`, for underwater and outdoor alike.
-  - Under the old protocol its recipe gained ~33% ATE on held-out Welland and ~15-20% on held-out Vobster against
-    shipped at 0.25 px. Under the split protocol at 0.10 px the gain is on Vobster only (see above).
-  - It is the best head on held-out TartanAir.
-  - It needs the C++ runtime to read 3 covariance channels (gate 6).
-- Until then, keep the shipped head in the runtime.
+**Settling the head: GT v2, the inlier head, the floor (2026-10-23).** Site folds with the EIVA + water recipe,
+deployed precision, held out as before. MAC-VO ATE m / frame-to-frame mm, split protocol (old protocol in brackets):
+
+| held out: Vobster (mean of 4) | 0.25 px | 0.10 px |
+|---|---|---|
+| shipped | 0.051 / 3.73 (0.131 / 3.97) | 0.038 / 3.50 (0.119 / 3.83) |
+| deploy | 0.059 / 3.70 (0.134 / 3.98) | 0.041 / 3.19 (0.121 / 3.69) |
+| v1 GT, 3-channel | 0.038 / 2.73 (0.111 / 3.42) | 0.032 / **2.61** (0.104 / 3.36) |
+| v2 GT, 3-channel | 0.035 / 2.97 (0.118 / 3.55) | **0.027** / 2.75 (0.110 / 3.43) |
+| v2 GT, inlier | 0.033 / 2.77 (0.113 / 3.47) | 0.032 / 2.62 (0.110 / 3.39) |
+
+| held out: Welland | 0.25 px | 0.10 px |
+|---|---|---|
+| shipped | 0.119 / 1.53 (0.217 / 2.13) | **0.080 / 1.19** (0.122 / 1.41) |
+| deploy | 0.131 / 1.61 (0.174 / 1.86) | 0.112 / 1.34 (0.129 / 1.45) |
+| v1 GT, 3-channel | 0.115 / 1.36 (0.145 / 1.51) | 0.093 / 1.20 (0.118 / 1.34) |
+| v2 GT, 3-channel | 0.096 / 1.26 (0.137 / 1.44) | 0.097 / 1.26 (0.119 / 1.41) |
+| v2 GT, inlier | 0.123 / 1.37 (0.150 / 1.49) | 0.113 / 1.28 (0.134 / 1.40) |
+
+Network level on the held-out site (scored on v2 GT):
+
+- The v2 3-channel heads rank best on both folds. Temporal / stereo AUSE: Vobster 0.103 / 0.123 against 0.114 /
+  0.154 for v1; Welland 0.116 / 0.450 against 0.120 / 0.482.
+- Their NLL is better on Vobster (0.96 / 0.80 against 0.98 / 0.89) and a little worse on Welland's stereo (7.7
+  against 6.1, from more tail).
+
+1. **GT v2 against v1: a draw on trajectories, better ranking.** v2 has the better ATE on three of the four fold /
+   floor cells, v1 the better frame-to-frame on Vobster; the gaps are within run-to-run noise (three EIVA-only fold
+   runs per site spread by 5-30% under the split protocol). Keep v2: the flow fine-tune trains on it.
+2. **The inlier head is rejected.** It ranks marginally better, but its output to MAC-VO (Sigma / p) has more
+   pixels beyond the 99% bound than the 3-channel head (tail > 9: temporal 4.2% against 3.5% on Vobster, stereo
+   9.4% against 8.8% on Welland). It is level on Vobster and worse on Welland. Down-weighting by the inlier
+   probability does not reach the confidently wrong pixels.
+3. **The floor depends on the head.**
+   - Shipped is best at 0.10 px. At 0.05 px it stays level on Welland (0.080 / 1.18) and gets worse on Vobster
+     (0.044 / 3.65).
+   - The EIVA + water folds keep improving to 0.05 px: Welland 0.085 / 1.17, Vobster 0.029 / 2.54.
+   - Held-out TartanAir (8 seaside sequences) is level at both floors. Shipped ATE 1.35 / 1.32 / 1.31 m and EIVA
+     + water 1.11 / 1.15 / 1.14 m at 0.25 / 0.10 / 0.05 px; RTE 0.0117-0.0120 and 0.0113-0.0116.
+4. **What the tuned head adds over shipped, each at its best floor:**
+   - Vobster: -24% ATE / -27% frame-to-frame.
+   - Welland: level. The ATE ranking flips between the two protocols (0.118 against 0.122 m old, 0.085 against
+     0.080 m split). Scale (0.995) and 10-frame drift (5.1% against 5.3%) are equal: Welland's 184 m dive does not
+     separate the heads.
+   - TartanAir: -16% ATE, RTE level.
+
+**Recommendation** (revised 2026-10-23).
+- Now, runtime only: `m_MinFlowCov` 0.10 px with the shipped head. Split protocol: Welland -33% ATE / -22%
+  frame-to-frame, Vobster -25% / -6%; TartanAir level.
+- With gate 6: an EIVA-tuned 3-channel head on GT v2 at 0.05 px. It gains on Vobster and TartanAir and is level on
+  Welland.
+  - The production head (`CovHeadEIVA_AllWater` on GT v2) is retrained once the flow fine-tune has decided which
+    matcher it sits on.
+  - The current `CovHeadEIVA_AllWater` (GT v1) is the fallback, with its engine already built and checked.
+- Until gate 6, keep the shipped head in the runtime.
 - The fp32-trained 25k head should not be deployed in fp16 / bf16: it breaks on `plane_tail1`.
 - Hard stretches like `plane_tail2`'s (where the photogrammetry also lost the camera) break every
   head. How a head copes with one varies between training runs. Judge such stretches on several
