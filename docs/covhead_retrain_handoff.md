@@ -869,9 +869,30 @@ not. Trajectories with its retrained head, held-out Vobster, split protocol, ATE
 | teacher + far water + head, 0.10 px | 0.005 / 1.29 | 0.054 / 4.10 | 2.326 / 45.3 | 0.051 / 5.40 |
 
 plane_tail2 and plane_nose recover, plane_mid is the best result so far, but plane_tail1 still breaks, now later: a
-~53 deg heading change between frames 320 and 360 (frame 251 is tracked). There the open water is far and similar for
-both matchers (frame 345: 15-18 px), so this is not the hallucination; the head's stereo overconfidence on the
-fine-tuned matcher (tail > 9 11.6% against 4.4%) is the remaining suspect.
+~53 deg heading change between frames 340 and 370 (frame 251 is tracked). An instrumented run shows inputs consistent
+with the true motion there: keypoints with GT 0.2-0.5 px off the flow the true motion implies, those without GT 1-3 px;
+next-frame depth within ~1% (with GT) and mostly 2-10% (without). So this break is not the water hallucination and not
+a frontend measurement error; it builds up in the pose graph (weighting / conditioning), out of reach of a
+matcher-side check. The head's stereo overconfidence on fine-tuned matchers (tail > 9 11.6% against 4.4%) is the
+model-side suspect.
+
+**Mixed split: seeing part of a site's water is enough for its other dives.** `FlowFTEIVA_Mixed_teacher` (Welland +
+Vobster plane_mid / plane_nose, teacher), held-out plane_tail1 / plane_tail2:
+
+- open water stays far: plane_tail1 #240 / #251 / #252 at 18.7 / 16.7 / 15.2 px (original 16.9 / 14.1 / 10.1);
+- flow error: temporal 0.884 px (-18%; Welland-only fine-tune -8%), stereo 0.719 px (-25%), best 20% stereo 0.073 px;
+- no trajectory breaks, but not better than the v2 head on the original matcher (split protocol, ATE m / mm):
+
+  | | plane_tail1 0.25 px | plane_tail2 0.25 px | plane_tail1 0.10 px | plane_tail2 0.10 px |
+  |---|---|---|---|---|
+  | shipped | 0.060 / 2.92 | 0.048 / 4.12 | 0.040 / 2.68 | 0.040 / 4.08 |
+  | v2 head, original matcher (Welland only) | 0.040 / 2.54 | 0.044 / 3.80 | 0.033 / 2.49 | 0.038 / 3.73 |
+  | mixed fine-tune + head | 0.049 / 2.68 | 0.036 / 4.24 | 0.038 / 2.74 | 0.038 / 4.63 |
+
+So far no matcher fine-tune turns its 20-25% better matching into better trajectories; frame-to-frame error is worse.
+The fine-tuned matchers' heads are overconfident (cross-fitting, `frame_range`, is the next fix), and the mixed
+head on the original matcher (`CovHeadEIVA_MixedWater_v2`, queued) separates the matcher's contribution from the
+head's extra Vobster data.
 
 Also under test (model side only):
 - synthetic underwater augmentation of TartanAir (`underwater_aug`, `Train/MatchingNet/underwater.py`: the revised
