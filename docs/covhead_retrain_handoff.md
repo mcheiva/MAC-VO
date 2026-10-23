@@ -904,6 +904,25 @@ Also under test (model side only):
 
 Any matcher fine-tune needs the water check on a new site before release (`Scripts/Dataset/check_eiva_water.py`).
 
+**Open-water negatives for the head: the clearest gain so far, a pure head change.** `CovHeadEIVA_WellandWater_v2neg`
+(the v2 recipe + `water_sigma: 32`, `water_margin: 24`; original matcher, fold W):
+
+- GT pixels as before on held-out Vobster: temporal NLL 0.938 (v2 0.963), AUSE 0.105 (0.103), tail > 9 3.2% (3.5%);
+  stereo NLL 0.848 (0.802), AUSE 0.126 (0.123), tail > 9 4.2% (4.4%).
+- Open water on held-out plane_tail1, sigma p10 / median: #251 stereo 35.7 / 59.7 px, temporal 33.3 / 48.3 px (v2
+  4.1 / 18.6, 4.6 / 25.6); #345 stereo 16.6 / 65.4, temporal 6.3 / 39.3 (v2 2.9 / 6.8, 1.9 / 3.2). Trained on
+  Welland's water, it flags Vobster's.
+- MAC-VO at the shipped setting (0.25 px), held-out Vobster, ATE m / frame-to-frame mm:
+
+  | | Vobster mean (split) | plane_mid | plane_nose | plane_tail1 | plane_tail2 | Vobster mean (old protocol) |
+  |---|---|---|---|---|---|---|
+  | shipped | 0.051 / 3.73 | 0.018 / 2.35 | 0.078 / 5.52 | 0.060 / 2.92 | 0.048 / 4.12 | 0.131 / 3.97 |
+  | v2 head | 0.035 / 2.97 | 0.015 / 1.81 | 0.041 / 3.71 | 0.040 / 2.54 | 0.044 / 3.80 | 0.118 / 3.55 |
+  | v2 head + negatives | **0.029 / 2.57** | 0.015 / 1.83 | **0.027 / 2.20** | 0.041 / 2.46 | **0.034 / 3.77** | **0.107 / 3.31** |
+
+  -43% ATE / -31% frame-to-frame against shipped, -17% / -13% against the v2 head; the largest gain on plane_nose,
+  the most water-heavy dive. Fold V (held-out Welland) and the 0.10 px runs are queued.
+
 **The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
 smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
 held-out stereo tail > 9 at 12-13% (v2 head on the original matcher: 4-9%), median calibration 2.4 (1.39 calibrated),
