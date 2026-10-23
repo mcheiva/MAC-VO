@@ -11,7 +11,11 @@ a new site's dive before deploying a fine-tuned matcher.
 
 Open water: pixels farther than --margin px from any GT pixel (EIVA_NoIMU's water_margin). Per frame and checkpoint:
 the median disparity there and the depth it implies, the share nearer than --near m, and the disparity error on the
-GT pixels. fp32, at the GT resolution, images downscaled with INTER_AREA as EIVA_NoIMU does; CPU unless --cuda.
+GT pixels; then the head's sigma (sqrt of the mean variance per axis) in open water and on the GT pixels, for the
+stereo pair and the temporal pair to the next frame: a head that knows the water has no correspondence reports a
+sigma there far above the GT pixels', down to its 10th percentile (the selector picks from the low end; the v2
+head's water p10 is ~4-5 px, the keypoints that broke plane_tail1 had ~5 px). fp32, at the GT resolution, images
+downscaled with INTER_AREA as EIVA_NoIMU does; CPU unless --cuda.
 """
 import argparse
 import json
@@ -51,7 +55,8 @@ def main():
         depth = np.load(args.gt / f"{Path(n).stem}.npz")["depth"].astype(np.float32)
         left = load_image(args.seq / "processed" / "left" / n, hw)
         right = load_image(args.seq / "processed" / "right" / n.replace("image_left", "image_right"), hw)
-        frames.append((f, depth, torch.from_numpy(left[None]).to(device), torch.from_numpy(right[None]).to(device)))
+        nxt = load_image(args.seq / "processed" / "left" / names[f + 1], hw)
+        frames.append((f, depth, torch.from_numpy(np.stack([left, left])).to(device), torch.from_numpy(np.stack([right, nxt])).to(device)))
 
     cfg = get_cfg()
     cfg.latentcostformer.decoder_depth = 12
@@ -59,10 +64,11 @@ def main():
         model = build_flowformer(cfg, torch.float32, torch.float32)
         model.load_ddp_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
         model = model.eval().to(device)
-        for f, depth, left, right in frames:
+        for f, depth, i1, i2 in frames:            # sample 0: stereo, 1: temporal to the next frame
             with torch.inference_mode():
-                flow, _ = model.inference(left, right)
+                flow, cov = model.inference(i1, i2)
             disp = -flow[0, 0].float().cpu().numpy()
+            sigma = cov[:, :2].float().mean(1).sqrt().cpu().numpy()
             has = depth > 0
             water = distance_transform_edt(~has) > args.margin
             err = np.abs(disp[has] - fxb / depth[has])
@@ -70,6 +76,9 @@ def main():
             print(f"{ckpt.parent.name} #{f}: open water {water.mean():.0%} of the image, disparity median {md:.1f} px "
                   f"({fxb / max(md, 1e-3):.1f} m), nearer than {args.near} m {np.mean(disp[water] > fxb / args.near):.0%} | "
                   f"GT pixels: disparity error median {np.median(err):.2f} px, > 3 px {np.mean(err > 3):.1%}", flush=True)
+            q = lambda x: f"{np.quantile(x, .1):.2f} / {np.median(x):.2f}"
+            print(f"    sigma p10 / median: open water stereo {q(sigma[0][water])}, temporal {q(sigma[1][water])} px | "
+                  f"GT pixels stereo {q(sigma[0][has])}, temporal {q(sigma[1][has])} px", flush=True)
 
 
 if __name__ == "__main__":
