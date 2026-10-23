@@ -850,7 +850,7 @@ Next (model side only): `water_disparity` (a far stereo target for open water, t
 training, with a water gate before the head (`macvo/flowft_gated.sh`). If it does not generalise either, synthetic
 underwater augmentation of TartanAir (attenuation and backscatter from the GT depth, random water colour and turbidity,
 light falloff) would teach "water is far" across appearances. Any matcher fine-tune needs the water check on a new
-site before release (`macvo/../eiva_gt/water_disp.py`).
+site before release (`Scripts/Dataset/check_eiva_water.py`).
 
 **The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
 smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
