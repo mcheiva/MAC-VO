@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import warnings
 from typing import get_args, get_origin, Literal, TypeGuard, TypeVar
 
@@ -50,6 +51,19 @@ def stereo_target(data: StereoData) -> torch.Tensor:
     valid = torch.isfinite(depth) & (depth > 0)
     u = torch.where(valid, -fxb / depth, float("nan"))
     return torch.cat([u, torch.where(valid, 0., float("nan"))], dim=1)
+
+
+def water_mask(depth: torch.Tensor, margin: int = 24, min_coverage: float = 0.05) -> torch.Tensor:
+    """
+    Pixels known to have no correspondence, from a sparse GT depth [B, 1, H, W] (EIVA photogrammetry): farther than
+    `margin` px (square window) from any pixel with depth, i.e. open water and haze; EIVA_NoIMU's water_margin.
+    Samples with a dense depth (synthetic data) have none, and samples with less than `min_coverage` GT (gated
+    frames, whose depth is withheld) get none either.
+    """
+    has = (torch.isfinite(depth) & (depth > 0)).float()
+    near = F.max_pool2d(has, kernel_size=2 * margin + 1, stride=1, padding=margin) > 0
+    usable = has.flatten(1).mean(1).view(-1, 1, 1, 1) >= min_coverage
+    return ~near & usable
 
 
 class IndexedDataset(torch.utils.data.Dataset):

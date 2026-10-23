@@ -21,7 +21,7 @@ from .utils import (
     T_TrainType,
     AssertLiteralType,
     IndexedDataset,
-    stereo_target,
+    stereo_target, water_mask,
     get_datatype, get_scheduler, get_optimizer
 )
 
@@ -103,6 +103,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     use_stereo = bool(modlecfg.get("stereo", False))
     # underwater_aug: share of the samples with a dense depth (TartanAir) rendered through random water (underwater.py)
     underwater_p = float(modlecfg.get("underwater_aug", 0.))
+    # water_sigma: covariance negatives on open water (loss.water_hinge), from EIVA's sparse GT depth (utils.water_mask)
+    water_sigma = modlecfg.get("water_sigma", None)
     running: dict[str, defaultdict[str, list[float]]] = {"temporal": defaultdict(list), "stereo": defaultdict(list)}
 
     total_steps = 0
@@ -129,7 +131,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 img1, img2 = underwater_pair(img1, img2, depth1, depth2, underwater_p)
 
             flow, cov = model(img1, img2)
-            loss, metrics = sequence_loss(cfg=modlecfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
+            water = water_mask(cur.gt_depth.cuda(), int(modlecfg.get("water_margin", 24))) if water_sigma and cur.gt_depth is not None else None
+            loss, metrics = sequence_loss(cfg=modlecfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov, water=water)
             running[kind]["loss"].append(loss.item())
             for k, v in metrics.items(): running[kind][k].append(v)
             

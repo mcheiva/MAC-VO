@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn.functional as F
 from Utility.Extensions import OnCallCompiler
+from Module.Network.FlowFormerCov.covhead import marginal_log_sigma
 
 @OnCallCompiler()
 def flow_loss(gamma: float, preds: torch.Tensor, gt: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -57,6 +58,22 @@ def cov_mixture_nll(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask:
 
 def masked_mean(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     return torch.where(mask, x, 0.).sum() / mask.sum().clamp(min=1)
+
+
+def water_hinge(gamma: float, cov_preds: list[torch.Tensor], water: torch.Tensor, sigma: float) -> torch.Tensor:
+    """
+    Negatives for the covariance head: on pixels known to have no correspondence (`water` [B, 1, H, W], open water
+    with no GT nearby) the per-axis sigma should be at least `sigma` px, so MAC-VO neither selects nor trusts them.
+    gamma-weighted over decoder iterations as cov_loss: mean of relu(log sigma_floor - log sigma)^2 over the
+    pixels and both axes. These pixels have no target, so the likelihood alone never reaches them.
+    """
+    n_predictions = len(cov_preds)
+    loss = torch.zeros((), device=water.device)
+    for i in range(n_predictions):
+        log_sigma = marginal_log_sigma(cov_preds[i][:, :3].float())
+        gap = F.relu(math.log(sigma) - log_sigma).square().mean(dim=1, keepdim=True)
+        loss = loss + gamma ** (n_predictions - i - 1) * masked_mean(gap, water)
+    return loss
 
 
 @OnCallCompiler()
@@ -117,12 +134,14 @@ def depth_loss(gamma: float, preds: torch.Tensor, gt_depth: torch.Tensor, Ks: to
     
     return depth_loss
 
-def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.Tensor | None, cov_preds: list[torch.Tensor] | None):    
+def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.Tensor | None, cov_preds: list[torch.Tensor] | None,
+                  water: torch.Tensor | None = None):
     """
     Covariance modes supervise every pixel with a finite target (NaN marks undefined targets, e.g. stereo
     pixels without valid depth). Occluded and out-of-view pixels stay in on purpose: that is where the
     head must learn a large sigma. `cov_mask: True` restricts the loss to flow_mask-valid pixels with
-    |gt| < max_flow (an ablation, not the default).
+    |gt| < max_flow (an ablation, not the default). `water` (pixels known to have no correspondence) adds
+    water_hinge with the floor `water_sigma` px and weight `water_weight` (covariance modes, when water_sigma is set).
     """
     gt_mag = gt.norm(dim=1, keepdim=True)
     mask = gt_mag < cfg.max_flow
@@ -144,6 +163,12 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
             else:
                 loss = cov_loss(cfg.gamma, preds, gt, cov_preds, cov_mask, cfg.get("beta", 0.), outlier_var)
             metrics = cov_metrics(preds[-1], gt, cov_preds[-1], cov_mask, outlier_var)
+            if water is not None and cfg.get("water_sigma", None) and water.any():
+                gamma = 1.0 if cfg.training_mode == "finalcov" else cfg.gamma
+                used = cov_preds[-1:] if cfg.training_mode == "finalcov" else cov_preds
+                loss = loss + cfg.get("water_weight", 1.0) * water_hinge(gamma, used, water, float(cfg.water_sigma))
+                with torch.no_grad():
+                    metrics["water_sigma_md"] = marginal_log_sigma(cov_preds[-1][:, :3].float()).exp()[water.expand(-1, 2, -1, -1)].median().item()
             
         case default:
             raise ValueError(f"Unavailable training mode {default}")      
