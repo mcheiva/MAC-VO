@@ -24,6 +24,9 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
     check_eiva_gt.py stores the per-frame `disparity_ratio` and `flow_error`). A frame beyond `max_scale_error`
     (default 0.025), or in a pair beyond `max_flow_error` (default 0.75 px), has no stereo target; a pair
     touching such a frame has no flow target.
+
+    `teacher` (Scripts/Dataset/make_eiva_teacher.py output) fills the pixels without a target with the original
+    network's flow and depth, for matcher fine-tunes: open water has no target and the stereo drifts there otherwise.
     """
     @classmethod
     def name(cls) -> str: return "EIVA_NoIMU"
@@ -47,6 +50,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
                           & np.concatenate([[True], self.pair_ok[:-1]])                       # NaN ratio (no GT) -> False
         # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
         self.use_filled = bool(getattr(cfg, "use_filled", True))
+        # teacher: Scripts/Dataset/make_eiva_teacher.py output. Pixels without a target take the original network's
+        # flow and depth (from its disparity), so a flow fine-tune keeps its behaviour in open water. Matcher
+        # fine-tunes only: the covariance head has to learn real errors.
+        self.teacher = Path(cfg.teacher) if getattr(cfg, "teacher", None) else None
         super().__init__(len(self.frames))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -70,6 +77,12 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
             hole = torch.tensor(gt["filled"].astype(bool))[None, None]
             depth = torch.where(hole, 0., depth)
             flow = torch.where(hole, float("nan"), flow)
+        if self.teacher is not None:
+            t = np.load(self.teacher / f"{Path(name).stem}.npz")
+            disparity = torch.tensor(t["disparity"], dtype=torch.float32)[None, None]
+            depth = torch.where((depth <= 0) & (disparity > 0.5), self.K[0, 0, 0] * self.baseline / disparity.clamp(min=0.5), depth)
+            if "flow" in t:
+                flow = torch.where(torch.isfinite(flow), flow, torch.tensor(t["flow"], dtype=torch.float32).unsqueeze(0))
         return StereoFrame(
             idx     = [local_index],
             time_ns = [index * 1000],       # FIXME: a fake timestamp (as GeneralStereo).
@@ -93,4 +106,4 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher
