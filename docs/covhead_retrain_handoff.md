@@ -1068,9 +1068,18 @@ matcher fine-tune costs nothing on TartanAir.
 Open water stays a dense-depth caveat, not a VO one: the gaps matcher puts it at ~1.8 m, but with sigma >= 20 px (p10)
 against 0.25-0.6 px on surfaces, so a sigma cut before fusion (nvblox) leaves it out.
 
-Under test: the same recipe plus synthetic camera turns (`rotation_aug: 0.3`, `rotation_max_deg: 35`;
-`Train/MatchingNet/rotation.py`: the second camera of a temporal pair turned about its centre, flow through the exact
-homography K R K^-1), aimed at #331; and fold V with gaps and gate.
+**Fold V with gaps + gate** (`FlowFTEIVA_VobsterA_water_gaps`, `CovHeadEIVA_VobsterBWater_v2neg_gaps`): water gate on
+Welland 6.3 px (far; the near-water hallucination is fold W's, Welland's matcher meeting Vobster's water). Network
+level on Welland as the gap-free fold V (temporal 0.712, stereo 2.69 px), stereo calibration median 2.25 (gap-free
+1.95). MAC-VO on Welland, split protocol: 0.083 / 1.06 at 0.25 px, the best on both (gap-free 0.090 / 1.18, negatives
+head on the original matcher 0.109 / 1.12, shipped 0.119 / 1.53); at 0.10 px 0.080 / 0.92 (gap-free 0.058 / 0.86).
+
+**Synthetic camera turns** (`rotation_aug: 0.3`, `rotation_max_deg: 35`; `Train/MatchingNet/rotation.py`: the
+second camera of a temporal pair turned about its centre, flow through the exact homography K R K^-1), fold W on top
+of gaps + gate. Large motion on held-out Vobster: #331 EPE 6.8 px (gaps 25.3, gap-free 69.6, original 5.2); strided
+pairs 0.72 / 0.58 / 0.82 / 1.38 / 6.07 / 74 px for 0-10 / 10-25 / 25-50 / 50-100 / 100-200 / > 200 px (original 0.85
+/ 0.62 / 1.09 / 1.83 / 7.85 / 87): better than the original matcher at every motion size. Water gate 54.9 px (the
+head has to cover it, as for gaps).
 
 **New dives (2026-10-24).**
 
