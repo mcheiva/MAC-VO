@@ -161,7 +161,12 @@ def main():
     ap.add_argument("--outlier-k", type=int, default=8, help="neighbours of the outlier test")
     ap.add_argument("--fill", type=int, default=1, help="hole-fill splat radius in pixels (0: off)")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--resume", action="store_true", help="keep the frames already written (a readable .npz), render the rest")
     args = ap.parse_args()
+    if args.device.startswith("cuda"):
+        # Views with many points in front of the camera grow the caching allocator to the card's size, and a Windows
+        # (WDDM) card then pages instead of failing, ~100x slower (welland_rear, 50M points, 24 GB): stay below it.
+        torch.cuda.set_per_process_memory_fraction(0.8)
 
     K, baseline, hw = load_calib(args.seq, args.scale)
     poses = load_poses(args.seq)
@@ -181,6 +186,8 @@ def main():
     cover, cover_filled = [], []
     with torch.no_grad():
         for i, name in enumerate(names):
+            if args.resume and readable(args.out / f"{Path(name).stem}.npz", last=i + 1 == len(names)):
+                continue
             Xc = r.camera(*poses[name])
             depth, winner, filled = r.zbuffer(Xc, args.window, args.occlusion, args.fill)
             own = winner >= 0
@@ -203,7 +210,17 @@ def main():
         "seq": str(args.seq), "scale": args.scale, "K": K.tolist(), "baseline": baseline, "hw": list(hw),
         "frames": names, "window": args.window, "occlusion": args.occlusion, "fill": args.fill,
         "outlier_std": args.outlier_std, "outlier_k": args.outlier_k, "outliers_removed": removed}, indent=1))
-    print(f"done: mean coverage {np.mean(cover):.1%} ({np.mean(cover_filled):.1%} filled) -> {args.out}")
+    print(f"done: mean coverage {np.mean(cover):.1%} ({np.mean(cover_filled):.1%} filled) of the {len(cover)} frames "
+          f"rendered now -> {args.out}")
+
+
+def readable(path: Path, last: bool) -> bool:
+    """A complete frame from an earlier run: its arrays load (a killed run leaves a truncated last file)."""
+    try:
+        with np.load(path) as z:
+            return z["depth"].size > 0 and z["filled"].size > 0 and (last or z["flow"].size > 0)
+    except Exception:
+        return False
 
 
 if __name__ == "__main__":
