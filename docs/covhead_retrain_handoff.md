@@ -1058,6 +1058,20 @@ frame-to-frame; against the negatives head on the original matcher better frame 
 step. The remaining gap is the > 200 px pair (#330-#332), and the head's stereo overconfidence on a site it did not
 see.
 
+The same model on TartanAir (held-out seaside): network level temporal EPE 1.231 against 1.550 (-21%), stereo 1.000
+against 1.601 (-38%), stereo NLL 2.38 (production negatives head 3.84, shipped 13.5), calibration median 1.00; on the
+20% most confident pixels 0.254 / 0.226 px (shipped 0.310 / 0.407). MAC-VO on the 8 held-out seaside sequences at
+0.25 px: ATE 1.103 m (production negatives head 1.144, shipped 1.354), RTE 0.0106 (0.0112, 0.0120), ROE 0.0558
+(0.0537, 0.0625); better than shipped on 6 of 8 (worse on E003 1.03 against 0.55, H001 0.38 against 0.26). The
+matcher fine-tune costs nothing on TartanAir.
+
+Open water stays a dense-depth caveat, not a VO one: the gaps matcher puts it at ~1.8 m, but with sigma >= 20 px (p10)
+against 0.25-0.6 px on surfaces, so a sigma cut before fusion (nvblox) leaves it out.
+
+Under test: the same recipe plus synthetic camera turns (`rotation_aug: 0.3`, `rotation_max_deg: 35`;
+`Train/MatchingNet/rotation.py`: the second camera of a temporal pair turned about its centre, flow through the exact
+homography K R K^-1), aimed at #331; and fold V with gaps and gate.
+
 **New dives (2026-10-24).**
 
 - `welland/welland_rear` (2024-08-19): the stern of the Welland wreck, 4209 posed frames, same rig. The preview
