@@ -890,9 +890,16 @@ Vobster plane_mid / plane_nose, teacher), held-out plane_tail1 / plane_tail2:
   | mixed fine-tune + head | 0.049 / 2.68 | 0.036 / 4.24 | 0.038 / 2.74 | 0.038 / 4.63 |
 
 So far no matcher fine-tune turns its 20-25% better matching into better trajectories; frame-to-frame error is worse.
-The fine-tuned matchers' heads are overconfident (cross-fitting, `frame_range`, is the next fix), and the mixed
-head on the original matcher (`CovHeadEIVA_MixedWater_v2`, queued) separates the matcher's contribution from the
-head's extra Vobster data.
+The mixed head on the original matcher (`CovHeadEIVA_MixedWater_v2`, the same data for the head) separates the two:
+
+  | | plane_tail1 0.25 px | plane_tail2 0.25 px | plane_tail1 0.10 px | plane_tail2 0.10 px |
+  |---|---|---|---|---|
+  | original matcher + mixed head | **0.032 / 2.37** | 0.040 / **3.52** | **0.030 / 2.36** | **0.035 / 3.48** |
+  | fine-tuned matcher + mixed head | 0.049 / 2.68 | 0.036 / 4.24 | 0.038 / 2.74 | 0.038 / 4.63 |
+
+The gain on the mixed split comes from the head's extra site data; the fine-tuned matcher adds frame-to-frame error.
+Its head, retrained on the frames the matcher was fitted to, is overconfident; cross-fitting (`frame_range`) is the
+test of whether a calibrated head lets the better matching pay off.
 
 Also under test (model side only):
 - synthetic underwater augmentation of TartanAir (`underwater_aug`, `Train/MatchingNet/underwater.py`: the revised
