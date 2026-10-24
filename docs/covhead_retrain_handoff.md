@@ -901,6 +901,13 @@ The gain on the mixed split comes from the head's extra site data; the fine-tune
 Its head, retrained on the frames the matcher was fitted to, is overconfident; cross-fitting (`frame_range`) is the
 test of whether a calibrated head lets the better matching pay off.
 
+Cross-fitting on fold W (matcher on Welland's even 300-frame blocks with teacher + far water,
+`FlowFTEIVA_WellandA_teacherwater`) fails the water gate: plane_tail1 #240 / #251 / #252 at 22.7 / 44.8 / 61.9 px
+(all of Welland: 20.5 / 33.6 / 27.3). With half the frames the far-water label no longer carries over to Vobster's
+water, so it is fragile; the site's own water (the mixed split) is the robust fix. The cross-fit therefore runs on
+the mixed split (`FlowFTEIVA_MixedA_teacherwater` on the even blocks of Welland / plane_mid / plane_nose,
+`CovHeadEIVA_MixedBWater_v2` on the odd ones, plane_tail1 / plane_tail2 held out), against the mixed baseline.
+
 Also under test (model side only):
 - synthetic underwater augmentation of TartanAir (`underwater_aug`, `Train/MatchingNet/underwater.py`: the revised
   underwater image formation model of Akkaynak & Treibitz 2018 from the GT depth, random water per pair);
