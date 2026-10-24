@@ -933,8 +933,13 @@ Any matcher fine-tune needs the water check on a new site before release (`Scrip
 matcher). Held-out TartanAir seaside (8 sequences), the shipped VO setting: ATE 1.144 m (shipped 1.354, production v1
 1.114), RTE 0.0112 (0.0120, 0.0116), ROE 0.0537 (0.0625, 0.0544); network level within a few % of production v1
 (temporal / stereo AUSE 0.215 / 0.178 against 0.207 / 0.173; shipped 0.231 / 0.276). The negatives cost nothing
-outside the water. Engine: `Export.py --cov-layout log-sigma` (the shipped output layout, a drop-in), build and parity
-below.
+outside the water. Engine (`Model/FlowFormerCovEIVAAllWaterV2Neg10-24-00-54-50/MACVO_FrontendCov_EIVAAllWaterV2Neg_fast[_o5.plan|.onnx]`):
+`Export.py --mode fast --cov-layout log-sigma` (the shipped output layout: the same inputs, outputs, names and
+2-channel log sigma, so the runtime takes it as is), trtexec 10.13 opt level 5, 62.5 MB.
+
+- Parity against PyTorch fp32 (3 seaside pairs): EPE on the 25% most confident pixels 0.012 px stereo / 0.018 px
+  temporal (PyTorch in the deployed precision: 0.011 / 0.016), |d log sigma| on them 0.012 (0.010).
+- Timing, batch 2: 57.8 ms mean against 56.1 ms for the shipped engine (+3%, the 3-channel head).
 
 **The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
 smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
