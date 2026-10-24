@@ -967,6 +967,79 @@ held-out stereo tail > 9 at 12-13% (v2 head on the original matcher: 4-9%), medi
 sigma^2 ~1.7x too small. `EIVA_NoIMU`'s `frame_range` allows cross-fitting: fine-tune the matcher on one set of
 blocks of a site, train the head on the others.
 
+**The clean cross-fit on fold W (2026-10-24).** Matcher on Welland's even blocks with far water and no teacher
+(`FlowFTEIVA_WellandA_water`), head with negatives on the odd blocks (`CovHeadEIVA_WellandBWater_v2_crossfit2`).
+Held-out Vobster, MAC-VO at 0.25 px, split protocol, ATE m / frame-to-frame mm:
+
+| | plane_mid | plane_nose | plane_tail1 | plane_tail2 |
+|---|---|---|---|---|
+| shipped | 0.018 / 2.35 | 0.078 / 5.52 | 0.060 / 2.92 | 0.048 / 4.12 |
+| negatives head, original matcher | 0.015 / 1.83 | **0.027 / 2.20** | **0.041 / 2.46** | 0.034 / 3.77 |
+| clean cross-fit | **0.005 / 1.28** | 0.036 / 2.65 | 2.324 / 45.26 (broken) | **0.026 / 3.37** |
+
+The best plane_mid and plane_tail2 so far, but plane_tail1 breaks (0.10 px: the same). The break is one pair: the
+step error at frames 331-332 is 132-142 mm (original matcher 26 / 9 mm). There the diver turns sharply, 11-29 deg
+per frame, 240-290 px of flow.
+
+**The fine-tuned matcher lost large displacements.** EPE on GT pixels, CPU fp32
+(`scratchpad .../eiva_gt/large_motion.py`): plane_tail1 #331 (256 px median flow) original 5.2 px, the clean
+cross-fit's matcher 69.6 px (100% > 3 px), the mixed fine-tune 30.5 px. Over strided pairs of plane_mid / plane_nose /
+plane_tail2 (frames f -> f + 1 / 3 / 6 / 10), by GT flow magnitude:
+
+| EPE px | 0-10 | 10-25 | 25-50 | 50-100 | 100-200 | > 200 |
+|---|---|---|---|---|---|---|
+| original | 0.85 | 0.62 | 1.09 | **1.83** | **7.85** | **87** |
+| clean cross-fit matcher | 0.70 | **0.61** | **1.04** | 2.26 | 9.25 | 100 |
+| mixed fine-tune | **0.61** | 0.64 | 1.22 | 4.90 | 12.94 | 104 |
+
+EIVA's consecutive frames move 5-35 px; trained on them, the matcher trades the large-motion range for the small.
+The mixed cross-fit (teacher + far water on the mixed split's even blocks, head on the odd ones) is also worse than
+the mixed baseline on the held-out tails: plane_tail1 0.056 / 3.09, plane_tail2 0.080 / 4.19 (baseline 0.032 / 2.37,
+0.040 / 3.52).
+
+**Frame gaps.** `EIVA_NoIMU`'s `frame_stride` k / `frame_offset` make consecutive items k frames apart; the flow
+target comes from the first frame's GT depth, back-projected at the pixel centres, moved by the two GT poses and
+projected, kept where the second frame's GT depth confirms the point within 3% (hidden points and points leaving
+the image get none). For k = 1 it reproduces the stored GT flow to 0.004-0.012 px (median). Over Welland, gap 8 gives
+79 px median flow per pair (p90 174), gap 16 113 px (p90 304). Stereo steps still pair each frame with its own right
+image. `EIVA_Welland_TrainA_v2_water_gaps` / `EIVA_Welland_TrainB_v2_gaps`: half of each block's pairs one frame
+apart, ~7% each 2, 3, 4, 6, 8, 12, 16 apart (offsets cycled over all frames), as many EIVA pairs as before.
+
+**GT the images do not confirm.** `check_eiva_gt.py` measures a frame's scale and its pairs' flow shift with the
+frozen FlowFormer, and misses poses that are off without a scale change: on OREC_CPS #400 its ratio was 0.998 with
+42% of the GT more than 2 px off. `Scripts/Dataset/check_eiva_photo.py` asks the images instead: per frame, the share
+of textured GT pixels whose 9 x 9 ZNCC exceeds 0.5 against the right image warped by the GT disparity
+(`photo_stereo`) and the next frame warped by the GT flow (`photo_temporal`), into index.json. A clean dive
+confirms 90-99% (plane_nose); a wrong pose 20-50%. Gate `photo_rel: 0.75` (x the dive's median), `photo_floor: 0.5`:
+
+| | stereo median | stereo targets gated | temporal median | flow targets gated | check_eiva_gt gates |
+|---|---|---|---|---|---|
+| welland | 82% | 11.3% | 89% | 1.3% | 4.9% |
+| plane_mid | 79% | 0% | 78% | 0% | 0% |
+| plane_nose | 95% | 0.4% | 94% | 1.8% | 0.4% |
+| plane_tail1 | 78% | 9.3% | 76% | 11.1% | 0.2% |
+| plane_tail2 | 84% | 5.2% | 85% | 6.9% | 2.9% |
+
+Welland's weak stretches: frames 0-150 (stereo 16-48%, temporal fine: rotation hides depth error), 800-950,
+~3050-3150. The tail1 break at 331 is not one of them (~65%).
+
+Under test (GPU 1, queued after the welland_rear GT): the clean cross-fit with frame gaps and the gate in both the
+matcher and the head (`FlowFTEIVA_WellandA_water_gaps`, `CovHeadEIVA_WellandBWater_v2_gaps`), the large-motion check,
+then MAC-VO on Vobster.
+
+**New dives (2026-10-24).**
+
+- `welland/welland_rear` (2024-08-19): the stern of the Welland wreck, 4209 posed frames, same rig. The preview
+  matches the images, at 56-96% coverage and scale 0.994-0.998. Its GT v2 goes to `D:/Datasets/EIVA_GT_v2/welland_rear`;
+  it is Welland-site data (held out in fold V).
+- `orec/OREC_CPS`: a cable protection system at 0.5-0.8 m in green water, 670 of 757 frames posed. Left out for now.
+  The cloud is fine: `Scripts/Dataset/voxel_clean.py` (an nvblox-style voxel hash with support, isolation, layer and
+  multi-view photo-consistency filters) changed nothing, and its voxels match the images at NCC 0.83 (median). The
+  poses are not: the GT the images confirm drops from 89-94% (frames 0-110, 440-510) to 18-40% next to the three runs
+  of images the reconstruction could not register (10 after #303, 39 after #345, 28 after #644). Usable: the gated
+  quarter, or the whole dive after per-frame pose refinement against the cloud with its own stereo pair (6 numbers a
+  frame), or a new alignment in Zephyr.
+
 **Open.**
 1. Gate 6: the C++ runtime has to read 3 covariance channels. It must drop its `exp(2 * cov)` and
    feed sigma_uv into `covariance_2to3` and the selector.
