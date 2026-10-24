@@ -81,7 +81,12 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         # frame_stride / frame_offset: items are frames offset, offset + k, ... of the (block of) GT frames
         self.stride = int(getattr(cfg, "frame_stride", 1))
         self.items = np.arange(int(getattr(cfg, "frame_offset", 0)), len(self.frames), self.stride)
-        self.poses = load_poses(self.root / "pose_gt.txt") if self.stride > 1 else None
+        # this block's poses only, as arrays: the training script builds sequences in a process pool and pickles each
+        # back on its own, so a shared per-dive dict would be copied into every one of thousands of sequences
+        if self.stride > 1:
+            poses = load_poses(self.root / "pose_gt.txt")
+            self.pose_R = np.stack([poses[n][0] for n in self.frames])
+            self.pose_t = np.stack([poses[n][1] for n in self.frames])
         # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
         self.use_filled = bool(getattr(cfg, "use_filled", True))
         # teacher: Scripts/Dataset/make_eiva_teacher.py output. Pixels without a target take the original network's
@@ -102,10 +107,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         image = cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (self.width, self.height), interpolation=cv2.INTER_AREA)
         return torch.tensor(image, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0) / 255.
 
-    def strided_flow(self, depth: np.ndarray, name: str, nxt: str) -> torch.Tensor:
-        """Flow [1, 2, H, W] from `name` to `nxt`: `depth` back-projected at the pixel centres, moved by the relative
-        GT pose, kept where nxt's GT depth confirms the point (within 3%); NaN elsewhere."""
-        (R1, t1), (R2, t2) = self.poses[name], self.poses[nxt]
+    def strided_flow(self, depth: np.ndarray, a: int, b: int) -> torch.Tensor:
+        """Flow [1, 2, H, W] from frame a to frame b (indices into self.frames): `depth` back-projected at the pixel
+        centres, moved by the relative GT pose, kept where b's GT depth confirms the point (within 3%); NaN elsewhere."""
+        R1, t1, R2, t2, nxt = self.pose_R[a], self.pose_t[a], self.pose_R[b], self.pose_t[b], self.frames[b]
         R = R2 @ R1.T                                                       # camera 1 -> camera 2 (X_c = R X_w + t)
         K = self.K[0].double().numpy()
         v, u = np.nonzero(depth > 0)
@@ -138,7 +143,7 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
                        else torch.full((1, 2, self.height, self.width), float("nan"))
             else:
                 src = gt["depth"].astype(np.float32)
-                flow = self.strided_flow(np.where(hole[0, 0].numpy(), 0., src) if hole is not None else src, name, self.frames[nxt])
+                flow = self.strided_flow(np.where(hole[0, 0].numpy(), 0., src) if hole is not None else src, index, nxt)
         else:       # last frame (no next frame) or inconsistent GT
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
         if not self.stereo_ok[index]:
