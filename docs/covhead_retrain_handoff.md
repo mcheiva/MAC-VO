@@ -1023,9 +1023,40 @@ confirms 90-99% (plane_nose); a wrong pose 20-50%. Gate `photo_rel: 0.75` (x the
 Welland's weak stretches: frames 0-150 (stereo 16-48%, temporal fine: rotation hides depth error), 800-950,
 ~3050-3150. The tail1 break at 331 is not one of them (~65%).
 
-Under test (GPU 1, queued after the welland_rear GT): the clean cross-fit with frame gaps and the gate in both the
-matcher and the head (`FlowFTEIVA_WellandA_water_gaps`, `CovHeadEIVA_WellandBWater_v2_gaps`), the large-motion check,
-then MAC-VO on Vobster.
+**The clean cross-fit on fold V** (`FlowFTEIVA_VobsterA_water`, head with negatives on Vobster's odd blocks): water
+gate on Welland 12.2 px (original 19-25). Held-out Welland, network level: stereo EPE 2.65 against 3.67 (-28%),
+temporal 0.71 against 0.77; the head is overconfident on stereo (calibration median 1.95, on the 20% most confident
+4.3 with 20% beyond 9 sigma). MAC-VO on Welland, split protocol, ATE m / frame-to-frame mm:
+
+| | 0.25 px (shipped) | 0.10 px |
+|---|---|---|
+| shipped | 0.119 / 1.53 | 0.080 / 1.19 |
+| negatives head, original matcher | 0.109 / **1.12** | 0.096 / 1.08 |
+| clean cross-fit | **0.090** / 1.18 | **0.058 / 0.86** |
+
+No break, the best ATE on Welland so far; at 0.10 px the fine-tuned stereo pays off (-27% / -28% against shipped at
+0.10).
+
+**Frame gaps + image gate on fold W** (`FlowFTEIVA_WellandA_water_gaps`, `CovHeadEIVA_WellandBWater_v2_gaps`).
+Large motion on held-out Vobster: tail1 #331 EPE 25.3 px (gap-free 69.6, original 5.2); strided pairs by flow
+magnitude 0.69 / 0.58 / 0.85 / 2.56 / 7.13 px for 0-10 / 10-25 / 25-50 / 50-100 / 100-200 px (original 0.85 / 0.62 /
+1.09 / 1.83 / 7.85), the fewest > 3 px errors in every bin up to 200 px. It fails the water gate (plane_tail1 #240 /
+#251 / #252 at 57 / 45 / 24 px), but the head flags that water (stereo sigma p10 / median 20.6 / 33.6 px on #251;
+gap-free 13.8 / 26.9). Network level: stereo EPE 0.678 (shipped 0.910), calibration median 1.92, tail > 9 8.8% (gap-free
+2.24, 12.1%; shipped 1.09, 4.4%). MAC-VO, held-out Vobster, split protocol:
+
+| 0.25 px | Vobster mean | plane_mid | plane_nose | plane_tail1 | plane_tail2 |
+|---|---|---|---|---|---|
+| shipped | 0.051 / 3.73 | 0.018 / 2.35 | 0.078 / 5.52 | 0.060 / 2.92 | 0.048 / 4.12 |
+| negatives head, original matcher | **0.029** / 2.57 | 0.015 / 1.83 | 0.027 / **2.20** | **0.041 / 2.46** | 0.034 / 3.77 |
+| clean cross-fit | 0.598 / 13.14 | **0.005 / 1.28** | 0.036 / 2.65 | 2.324 / 45.26 | **0.026** / 3.37 |
+| + gaps + gate | 0.035 / **2.44** | 0.009 / 1.32 | **0.026** / 2.33 | 0.076 / 3.00 | 0.029 / **3.13** |
+
+At 0.10 px: 0.032 / 2.43 (negatives head 0.028 / 2.45, shipped 0.038 / 3.50). The gaps remove the break: tail1's
+step error at #331 is still 119 mm, but #332 is back to 15 mm (gap-free 132). Against shipped -31% ATE / -35%
+frame-to-frame; against the negatives head on the original matcher better frame to frame, worse in ATE by tail1's one
+step. The remaining gap is the > 200 px pair (#330-#332), and the head's stereo overconfidence on a site it did not
+see.
 
 **New dives (2026-10-24).**
 
