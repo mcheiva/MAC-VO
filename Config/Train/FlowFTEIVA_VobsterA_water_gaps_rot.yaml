@@ -1,0 +1,125 @@
+Model:
+  name: "FlowFormerFlowFTVobsterAWaterGapsRot"
+  stage: "tartanair"
+  suffix: "sintel"
+  gamma: 0.85
+  max_flow: 400
+  batch_size: 2           # fp32 end to end: batch 4 pages on a 24 GB card, batch 2 peaks at 21.7 GB
+  sum_freq: 100
+  val_freq: 5000000
+  image_size: [480, 640]
+  image_scale: 1
+  add_noise: True
+  # Covariance loss on every pixel with a finite target; True restricts it to flow_mask-valid pixels (ablation).
+  cov_mask: False
+  # beta-NLL weight stopgrad(det Sigma)^(beta / 2); 0 is the plain NLL (handoff 5.3). With the flow frozen,
+  # beta only reweights pixels by sigma^(2 beta), towards the uncertain ones the selector discards: 0.5 is an ablation.
+  beta: 0.0
+  # Alternate temporal and stereo (left/right, target -fx b / depth) batches (handoff 5.4).
+  stereo: True
+  # Synthetic camera turns (Train/MatchingNet/rotation.py): 30% of the temporal pairs get a second camera rotated by
+  # U(0, 35) deg, exact GT flow by the homography K R K^-1; plane_tail1's sharp turn is 11-29 deg, 240-290 px between frames.
+  rotation_aug: 0.3
+  rotation_max_deg: 35.0
+  # Train in the deployment precision (MACVO_Fast / Export.py --mode fast); the covariance branch keeps fp32 weights.
+  # Flow fine-tune (--training_mode flow): the matcher trains in fp32 (master weights); deployment runs it in fp16 / bf16.
+  encoder_dtype: fp32
+  decoder_dtype: fp32
+  # decoder+cost: the two pretrained Twins image encoders stay frozen (see train_flowformer.py)
+  flow_trainable: decoder+cost
+
+  critical_params: []
+  transformer: "latentcostformer"
+  # Start from the recurrent Cholesky run (FlowFormerCovChol, 25k steps; its matcher is the shipped one). The head
+  # stays frozen in flow mode: retrain it on the fine-tuned matcher afterwards. Same data as CovHeadEIVA_VobsterWater_v2
+  # (EIVA v2 GT, Vobster's even 100-frame blocks for cross-fitting, Welland held out, + the seaside oversampling).
+  # Open water gets a far stereo target (water_disparity); no teacher.
+  restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
+
+  # latentcostformer
+  latentcostformer:
+    cov_channels: 3     # Cholesky factor of the full 2x2 flow covariance (handoff 5.2)
+    cov_fp32: true
+    pe: "linear"
+    dropout: 0.0
+    encoder_latent_dim: 256 # in twins, this is 256
+    query_latent_dim: 64
+    cost_latent_input_dim: 64
+    cost_latent_token_num: 8
+    cost_latent_dim: 128
+    arc_type: "transformer"
+    cost_heads_num: 1
+    # encoder
+    pretrain: True
+    context_concat: False
+    encoder_depth: 3
+    feat_cross_attn: False
+    patch_size: 8
+    patch_embed: "single"
+    no_pe: False
+    gma: "GMA"
+    kernel_size: 9
+    rm_res: True
+    vert_c_dim: 64
+    cost_encoder_res: True
+    cnet: "twins"
+    fnet: "twins"
+    no_sc: False
+    only_global: False
+    add_flow_token: True
+    use_mlp: False
+    vertical_conv: False
+
+    # decoder
+    decoder_depth: 12
+    critical_params: ["cost_heads_num", 
+                      "vert_c_dim", 
+                      "cnet", 
+                      "pretrain", 
+                      "add_flow_token", 
+                      "encoder_depth", 
+                      "gma", 
+                      "cost_encoder_res"
+                      ]
+
+  ### TRAINER
+
+  clip           : 1.0
+  num_steps      : &num_steps 20000
+  
+  optimizer:
+    type: "AdamW"
+    args:
+      lr          : &lr 2.5e-5     # domain fine-tune of the pretrained matcher
+      weight_decay: 1.0e-5
+      eps         : 1.0e-8
+  
+  scheduler:
+    type: "OneCycleLR"
+    args: 
+      total_steps: *num_steps
+      pct_start: 0.05
+      cycle_momentum: False
+      max_lr: *lr
+      anneal_strategy: "linear"
+
+  folderlength: None
+  autosave_freq: 5000
+  num_workers: 0
+  mixed_precision: False
+
+  seed: 1234
+  log_freq: 100
+  datatype: fp32
+
+Train:
+  data: !flatten_seq 
+    - !include ../Sequence/Training_Dataset/TartanAirV1_Zip.yaml
+    - !include ../Sequence/Training_Dataset/EIVA_Vobster_TrainA_v2_water_gaps.yaml
+    # + the seaside oversampling (CovHeadEIVA_AllWater's recipe, one site held out)
+    - !include ../Sequence/Training_Dataset/TartanAirV1_Seaside_Train.yaml
+
+
+Evaluate:
+  data: !flatten_seq 
+    - !include ../Sequence/Training_Dataset/EIVA_Welland_v2.yaml
