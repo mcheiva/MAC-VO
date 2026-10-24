@@ -1081,6 +1081,19 @@ pairs 0.72 / 0.58 / 0.82 / 1.38 / 6.07 / 74 px for 0-10 / 10-25 / 25-50 / 50-100
 / 0.62 / 1.09 / 1.83 / 7.85 / 87): better than the original matcher at every motion size. Water gate 54.9 px (the
 head has to cover it, as for gaps).
 
+But the trajectories get worse. MAC-VO on held-out Vobster at 0.25 px, split protocol: 0.062 / 3.41 (gaps 0.035 / 2.44);
+plane_mid 0.007 / 1.30 and plane_tail2 0.024 / 3.01 are the best yet and tail1's #331 step drops to 23 mm (gaps 119,
+original matcher 26), but plane_nose goes to 0.091 / 5.71 from one step: #544, 787 mm (gaps 37, original matcher 28).
+There a diver's exhaled bubble cloud rises through the image (#544-#546; the image check flags those frames, stereo
+28%, temporal 15%): large, coherent motion of independent objects, which the turns taught the matcher to read as the
+camera turning. tail1 also loses at #291 (33 mm against < 1), in a stretch whose GT the images do not confirm (~55%).
+The turns stay out of the production recipe until they are made safe with moving objects (smaller share or angle,
+or turns composed with independent motion).
+
+Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
+dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
+engine (log-sigma layout, opt level 5, parity, timing), and in-sample MAC-VO on all EIVA dives as a sanity check.
+
 **New dives (2026-10-24).**
 
 - `welland/welland_rear` (2024-08-19): the stern of the Welland wreck, 4209 posed frames, same rig. The preview
