@@ -1,4 +1,5 @@
 import cv2
+import functools
 import json
 import torch
 import numpy as np
@@ -26,6 +27,16 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
     (default 0.025), or in a pair beyond `max_flow_error` (default 0.75 px), has no stereo target; a pair
     touching such a frame has no flow target.
 
+    A pose can also be off in a way that keeps the scale: Scripts/Dataset/check_eiva_photo.py stores, per frame, the
+    share of textured GT pixels its own images confirm (`photo_stereo`: the right image at the GT disparity;
+    `photo_temporal`: the next frame at the GT flow). With `photo_rel` set, a frame below max(`photo_floor`,
+    `photo_rel` x the dive's median) loses its stereo target, a pair below it its flow target.
+
+    `frame_stride` k (with `frame_offset`) makes the sequence every k-th frame, so consecutive items are k frames
+    apart: larger displacements from the same footage. Their flow target is computed from the first frame's GT depth
+    and the two GT poses (pose_gt.txt), kept where the second frame's GT depth confirms the point within 3%
+    (occlusion, out of view), and only when every pair in between and both frames pass the gates.
+
     `teacher` (Scripts/Dataset/make_eiva_teacher.py output) fills the pixels without a target with the original
     network's flow and depth, for matcher fine-tunes: open water has no target and the stereo drifts there otherwise.
     `water_disparity` instead gives open water (farther than `water_margin` px from any GT pixel) a far stereo
@@ -51,12 +62,26 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         self.pair_ok = ~(flow_error > getattr(cfg, "max_flow_error", 0.75))
         self.consistent = (np.abs(ratio - 1) <= getattr(cfg, "max_scale_error", 0.025)) & self.pair_ok \
                           & np.concatenate([[True], self.pair_ok[:-1]])                       # NaN ratio (no GT) -> False
+        # photo gate: share of confirmed GT pixels against the dive's median (NaN, too little GT to judge: passes)
+        self.stereo_ok, self.temporal_ok = self.consistent.copy(), np.ones(len(self.frames), bool)
+        if (photo_rel := getattr(cfg, "photo_rel", None)) is not None:
+            if "photo_stereo" not in index:
+                raise KeyError(f"photo_rel needs Scripts/Dataset/check_eiva_photo.py's scores in {self.gt_root / 'index.json'}")
+            floor = float(getattr(cfg, "photo_floor", 0.5))
+            for key, ok in (("photo_stereo", self.stereo_ok), ("photo_temporal", self.temporal_ok)):
+                share = np.array(index[key], dtype=np.float64)
+                ok &= ~(share < max(floor, float(photo_rel) * np.nanmedian(share)))
         # frame_range [start, stop): only this contiguous block of GT frames, e.g. to fine-tune the matcher and train the
         # covariance head on disjoint frames of a site. The gates keep one frame past the block for its last pair.
         if (frame_range := getattr(cfg, "frame_range", None)) is not None:
             start, stop = int(frame_range[0]), min(int(frame_range[1]), len(self.frames))
             self.frames = self.frames[start:stop]
             self.pair_ok, self.consistent = self.pair_ok[start:stop + 1], self.consistent[start:stop + 1]
+            self.stereo_ok, self.temporal_ok = self.stereo_ok[start:stop + 1], self.temporal_ok[start:stop + 1]
+        # frame_stride / frame_offset: items are frames offset, offset + k, ... of the (block of) GT frames
+        self.stride = int(getattr(cfg, "frame_stride", 1))
+        self.items = np.arange(int(getattr(cfg, "frame_offset", 0)), len(self.frames), self.stride)
+        self.poses = load_poses(self.root / "pose_gt.txt") if self.stride > 1 else None
         # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
         self.use_filled = bool(getattr(cfg, "use_filled", True))
         # teacher: Scripts/Dataset/make_eiva_teacher.py output. Pixels without a target take the original network's
@@ -67,7 +92,9 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         # synthetic data has for the sky; MAC-VO's selector skips points beyond fx b / 1 px. Matcher fine-tunes only.
         self.water_disparity = getattr(cfg, "water_disparity", None)
         self.water_margin = float(getattr(cfg, "water_margin", 24))
-        super().__init__(len(self.frames))
+        if self.teacher is not None and self.stride > 1:
+            raise ValueError("the teacher's flow goes to the next frame only: no frame_stride with a teacher")
+        super().__init__(len(self.items))
 
     def load_image(self, path: Path) -> torch.Tensor:
         image = cv2.imread(str(path), cv2.IMREAD_COLOR)
@@ -75,19 +102,48 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         image = cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (self.width, self.height), interpolation=cv2.INTER_AREA)
         return torch.tensor(image, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0) / 255.
 
+    def strided_flow(self, depth: np.ndarray, name: str, nxt: str) -> torch.Tensor:
+        """Flow [1, 2, H, W] from `name` to `nxt`: `depth` back-projected at the pixel centres, moved by the relative
+        GT pose, kept where nxt's GT depth confirms the point (within 3%); NaN elsewhere."""
+        (R1, t1), (R2, t2) = self.poses[name], self.poses[nxt]
+        R = R2 @ R1.T                                                       # camera 1 -> camera 2 (X_c = R X_w + t)
+        K = self.K[0].double().numpy()
+        v, u = np.nonzero(depth > 0)
+        z = depth[v, u].astype(np.float64)
+        X = np.stack([(u - K[0, 2]) / K[0, 0] * z, (v - K[1, 2]) / K[1, 1] * z, z], axis=1) @ R.T + (t2 - R @ t1)
+        u2, v2 = K[0, 0] * X[:, 0] / X[:, 2] + K[0, 2], K[1, 1] * X[:, 1] / X[:, 2] + K[1, 2]
+        iu, iv = np.round(u2).astype(np.int64), np.round(v2).astype(np.int64)
+        seen = (X[:, 2] > 0.05) & (iu >= 0) & (iu < self.width) & (iv >= 0) & (iv < self.height)
+        d2 = np.zeros(len(z))
+        d2[seen] = np.load(self.gt_root / f"{Path(nxt).stem}.npz")["depth"].astype(np.float64)[iv[seen], iu[seen]]
+        seen &= (d2 > 0) & (np.abs(X[:, 2] - d2) < 0.03 * d2)
+        flow = np.full((2, self.height, self.width), np.nan, np.float32)
+        flow[0, v[seen], u[seen]] = u2[seen] - u[seen]
+        flow[1, v[seen], u[seen]] = v2[seen] - v[seen]
+        return torch.from_numpy(flow).unsqueeze(0)
+
     def __getitem__(self, local_index: int) -> StereoFrame:
-        index = self.get_index(local_index)
+        index = int(self.items[self.get_index(local_index)])    # into self.frames and the gates
         name  = self.frames[index]
         gt    = np.load(self.gt_root / f"{Path(name).stem}.npz")
         depth = torch.tensor(gt["depth"], dtype=torch.float32)[None, None]
-        if "flow" in gt and self.pair_ok[index] and self.consistent[index] and self.consistent[index + 1]:
-            flow = torch.tensor(gt["flow"], dtype=torch.float32).unsqueeze(0)
+        nxt   = index + self.stride
+        hole  = torch.tensor(gt["filled"].astype(bool))[None, None] if not self.use_filled and "filled" in gt else None
+        gates = slice(index, nxt)
+        if nxt < len(self.pair_ok) and self.pair_ok[gates].all() and self.temporal_ok[gates].all() \
+                and self.consistent[index] and self.consistent[nxt] \
+                and (self.stride == 1 or (self.stereo_ok[index] and self.stereo_ok[nxt] and nxt < len(self.frames))):
+            if self.stride == 1:
+                flow = torch.tensor(gt["flow"], dtype=torch.float32).unsqueeze(0) if "flow" in gt \
+                       else torch.full((1, 2, self.height, self.width), float("nan"))
+            else:
+                src = gt["depth"].astype(np.float32)
+                flow = self.strided_flow(np.where(hole[0, 0].numpy(), 0., src) if hole is not None else src, name, self.frames[nxt])
         else:       # last frame (no next frame) or inconsistent GT
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
-        if not self.consistent[index]:
+        if not self.stereo_ok[index]:
             depth = torch.zeros_like(depth)
-        if not self.use_filled and "filled" in gt:
-            hole = torch.tensor(gt["filled"].astype(bool))[None, None]
+        if hole is not None:
             depth = torch.where(hole, 0., depth)
             flow = torch.where(hole, float("nan"), flow)
         if self.teacher is not None:
@@ -122,4 +178,16 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, use_filled, teacher, water_disparity, water_margin, frame_range
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, photo_rel, photo_floor, use_filled,
+                                        # teacher, water_disparity, water_margin, frame_range, frame_stride, frame_offset
+
+
+@functools.lru_cache(maxsize=None)
+def load_poses(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """pose_gt.txt rows `<left image> x y z r00 .. r22`, world -> camera (X_c = R X_w + t), as make_eiva_gt.py reads them."""
+    poses = {}
+    for line in path.read_text().splitlines():
+        p = line.split()
+        if len(p) >= 13:
+            poses[p[0]] = (np.array(p[4:13], np.float64).reshape(3, 3), np.array(p[1:4], np.float64))
+    return poses
