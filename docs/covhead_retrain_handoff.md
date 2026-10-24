@@ -921,7 +921,20 @@ Any matcher fine-tune needs the water check on a new site before release (`Scrip
   | v2 head + negatives | **0.029 / 2.57** | 0.015 / 1.83 | **0.027 / 2.20** | 0.041 / 2.46 | **0.034 / 3.77** | **0.107 / 3.31** |
 
   -43% ATE / -31% frame-to-frame against shipped, -17% / -13% against the v2 head; the largest gain on plane_nose,
-  the most water-heavy dive. Fold V (held-out Welland) and the 0.10 px runs are queued.
+  the most water-heavy dive. At 0.10 px: 0.028 / 2.45 (v2 0.027 / 2.75, shipped 0.038 / 3.50).
+- Fold V (`CovHeadEIVA_VobsterWater_v2neg`, held-out Welland): on the GT pixels it improves too, the haze next to the
+  reconstruction being where the confidently wrong pixels were (temporal NLL 1.51 against 2.16, tail > 9 6.6% against
+  8.9%, tail > 100 0.48% against 0.95%; stereo NLL 6.79 against 7.70, tail > 9 6.6% against 8.8%). MAC-VO at 0.25 px:
+  frame-to-frame 1.12 mm (v2 1.26, shipped 1.53; split protocol), 10-frame drift 5.0% (5.4%, 7.0%), the best local
+  accuracy on Welland of any model; ATE 0.109 m (v2 0.096, shipped 0.119; old protocol 0.147 / 0.137 / 0.217), where
+  Welland's 184 m dive does not separate heads (accumulated heading drift).
+
+**Production head with negatives** (`CovHeadEIVA_AllWater_v2neg`: both sites on GT v2, TartanAir, seaside; original
+matcher). Held-out TartanAir seaside (8 sequences), the shipped VO setting: ATE 1.144 m (shipped 1.354, production v1
+1.114), RTE 0.0112 (0.0120, 0.0116), ROE 0.0537 (0.0625, 0.0544); network level within a few % of production v1
+(temporal / stereo AUSE 0.215 / 0.178 against 0.207 / 0.173; shipped 0.231 / 0.276). The negatives cost nothing
+outside the water. Engine: `Export.py --cov-layout log-sigma` (the shipped output layout, a drop-in), build and parity
+below.
 
 **The head on a fine-tuned matcher is overconfident.** Retrained on the fine-tune's training frames, it learns errors
 smaller than the matcher makes on new data (stereo EPE on the training site -44%, on the held-out site -22%):
