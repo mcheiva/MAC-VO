@@ -42,20 +42,6 @@ def cov_nll(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask: torch.T
     return maha + 2 * (c1 + c2), maha
 
 
-def cov_mixture_nll(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask: torch.Tensor,
-                    outlier_var: float) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Two-component NLL for the single-shot inlier head, c = [c1, c2, c3, logit p]: the error is drawn from
-    N(0, Sigma) with probability p and from N(0, outlier_var I) otherwise. Same units as cov_nll (-2 log
-    density without the 2 log 2 pi constant); returns (nll, inlier r^T Sigma^-1 r).
-    """
-    nll_in, maha = cov_nll(pred, gt, c[:, :3], mask)
-    r = torch.where(mask, pred.detach() - gt, 0.)
-    nll_out = (r * r).sum(dim=1, keepdim=True) / outlier_var + 2 * math.log(outlier_var)
-    logit = c[:, 3:4]
-    return -2 * torch.logaddexp(F.logsigmoid(logit) - 0.5 * nll_in, F.logsigmoid(-logit) - 0.5 * nll_out), maha
-
-
 def masked_mean(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     return torch.where(mask, x, 0.).sum() / mask.sum().clamp(min=1)
 
@@ -70,7 +56,7 @@ def water_hinge(gamma: float, cov_preds: list[torch.Tensor], water: torch.Tensor
     n_predictions = len(cov_preds)
     loss = torch.zeros((), device=water.device)
     for i in range(n_predictions):
-        log_sigma = marginal_log_sigma(cov_preds[i][:, :3].float())
+        log_sigma = marginal_log_sigma(cov_preds[i].float())
         gap = F.relu(math.log(sigma) - log_sigma).square().mean(dim=1, keepdim=True)
         loss = loss + gamma ** (n_predictions - i - 1) * masked_mean(gap, water)
     return loss
@@ -78,35 +64,20 @@ def water_hinge(gamma: float, cov_preds: list[torch.Tensor], water: torch.Tensor
 
 @OnCallCompiler()
 def cov_loss(gamma: float, preds: list[torch.Tensor], gt: torch.Tensor, cov_preds: list[torch.Tensor],
-             mask: torch.Tensor, beta: float = 0., outlier_var: float = 32. ** 2) -> torch.Tensor:
-    """
-    gamma-weighted sum over decoder iterations of the mean per-pixel NLL over `mask` ([B, 1, H, W] bool).
-    beta > 0 is beta-NLL (Seitzer et al. 2022): each pixel is scaled by stopgrad(det Sigma)^(beta / 2)
-    = stopgrad(exp(beta (c1 + c2))). beta = 0 is the plain NLL. 4-channel predictions (single-shot inlier
-    head) use the mixture NLL; the single-shot head has one prediction, so gamma does not apply.
-    """
+             mask: torch.Tensor) -> torch.Tensor:
+    """gamma-weighted sum over decoder iterations of the mean per-pixel NLL over `mask` ([B, 1, H, W] bool)."""
     n_predictions = len(preds)
     loss = torch.zeros((), device=gt.device)
     for i in range(n_predictions):
-        if cov_preds[i].size(1) == 4:
-            nll, _ = cov_mixture_nll(preds[i], gt, cov_preds[i], mask, outlier_var)
-        else:
-            nll, _ = cov_nll(preds[i], gt, cov_preds[i], mask)
-        if beta > 0:
-            nll = nll * torch.exp(beta * (cov_preds[i][:, 0:1] + cov_preds[i][:, 1:2])).detach()
+        nll, _ = cov_nll(preds[i], gt, cov_preds[i], mask)
         loss = loss + gamma ** (n_predictions - i - 1) * masked_mean(nll, mask)
     return loss
 
 
 @torch.no_grad()
-def cov_metrics(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask: torch.Tensor,
-                outlier_var: float = 32. ** 2) -> dict[str, float]:
-    """Last-iteration NLL, mean r^T Sigma^-1 r (2 when calibrated; inlier Sigma for the mixture), EPE,
-    mean |c3| and, for the inlier head, the mean inlier probability over `mask`."""
-    if c.size(1) == 4:
-        nll, maha = cov_mixture_nll(pred, gt, c, mask, outlier_var)
-    else:
-        nll, maha = cov_nll(pred, gt, c, mask)
+def cov_metrics(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask: torch.Tensor) -> dict[str, float]:
+    """Last-iteration NLL, mean r^T Sigma^-1 r (2 when calibrated), EPE and mean |c3| over `mask`."""
+    nll, maha = cov_nll(pred, gt, c, mask)
     metrics = {
         "nll"  : masked_mean(nll, mask).item(),
         "calib": masked_mean(maha, mask).item(),
@@ -114,8 +85,6 @@ def cov_metrics(pred: torch.Tensor, gt: torch.Tensor, c: torch.Tensor, mask: tor
     }
     if c.size(1) >= 3:
         metrics["abs_c3"] = masked_mean(c[:, 2:3].abs(), mask).item()
-    if c.size(1) == 4:
-        metrics["inlier"] = masked_mean(torch.sigmoid(c[:, 3:4]), mask).item()
     return metrics
 
 @OnCallCompiler()
@@ -157,18 +126,17 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
             assert cov_preds is not None
             cov_mask = torch.isfinite(gt).all(dim=1, keepdim=True)
             if cfg.get("cov_mask", False): cov_mask &= mask
-            outlier_var = cfg.latentcostformer.get("outlier_sigma", 32.) ** 2
             if cfg.training_mode == "finalcov":
-                loss = cov_loss(1.0, preds[-1:], gt, cov_preds[-1:], cov_mask, cfg.get("beta", 0.), outlier_var)
+                loss = cov_loss(1.0, preds[-1:], gt, cov_preds[-1:], cov_mask)
             else:
-                loss = cov_loss(cfg.gamma, preds, gt, cov_preds, cov_mask, cfg.get("beta", 0.), outlier_var)
-            metrics = cov_metrics(preds[-1], gt, cov_preds[-1], cov_mask, outlier_var)
+                loss = cov_loss(cfg.gamma, preds, gt, cov_preds, cov_mask)
+            metrics = cov_metrics(preds[-1], gt, cov_preds[-1], cov_mask)
             if water is not None and cfg.get("water_sigma", None) and water.any():
                 gamma = 1.0 if cfg.training_mode == "finalcov" else cfg.gamma
                 used = cov_preds[-1:] if cfg.training_mode == "finalcov" else cov_preds
                 loss = loss + cfg.get("water_weight", 1.0) * water_hinge(gamma, used, water, float(cfg.water_sigma))
                 with torch.no_grad():
-                    metrics["water_sigma_md"] = marginal_log_sigma(cov_preds[-1][:, :3].float()).exp()[water.expand(-1, 2, -1, -1)].median().item()
+                    metrics["water_sigma_md"] = marginal_log_sigma(cov_preds[-1].float()).exp()[water.expand(-1, 2, -1, -1)].median().item()
             
         case default:
             raise ValueError(f"Unavailable training mode {default}")      

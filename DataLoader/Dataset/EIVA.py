@@ -37,10 +37,9 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
     and the two GT poses (pose_gt.txt), kept where the second frame's GT depth confirms the point within 3%
     (occlusion, out of view), and only when every pair in between and both frames pass the gates.
 
-    `teacher` (Scripts/Dataset/make_eiva_teacher.py output) fills the pixels without a target with the original
-    network's flow and depth, for matcher fine-tunes: open water has no target and the stereo drifts there otherwise.
-    `water_disparity` instead gives open water (farther than `water_margin` px from any GT pixel) a far stereo
-    target, the convention synthetic data has for the sky.
+    `water_disparity` gives open water (farther than `water_margin` px from any GT pixel) a far stereo target, the
+    convention synthetic data has for the sky; for matcher fine-tunes, whose stereo otherwise drifts to near surfaces
+    there (open water has no GT).
     """
     @classmethod
     def name(cls) -> str: return "EIVA_NoIMU"
@@ -87,18 +86,10 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
             poses = load_poses(self.root / "pose_gt.txt")
             self.pose_R = np.stack([poses[n][0] for n in self.frames])
             self.pose_t = np.stack([poses[n][1] for n in self.frames])
-        # use_filled: false keeps only pixels with a point of their own (make_eiva_gt's `filled` mask)
-        self.use_filled = bool(getattr(cfg, "use_filled", True))
-        # teacher: Scripts/Dataset/make_eiva_teacher.py output. Pixels without a target take the original network's
-        # flow and depth (from its disparity), so a flow fine-tune keeps its behaviour in open water. Matcher
-        # fine-tunes only: the covariance head has to learn real errors.
-        self.teacher = Path(cfg.teacher) if getattr(cfg, "teacher", None) else None
         # water_disparity: open water (no GT pixel within water_margin px) gets this stereo target (px), i.e. far, as
         # synthetic data has for the sky; MAC-VO's selector skips points beyond fx b / 1 px. Matcher fine-tunes only.
         self.water_disparity = getattr(cfg, "water_disparity", None)
         self.water_margin = float(getattr(cfg, "water_margin", 24))
-        if self.teacher is not None and self.stride > 1:
-            raise ValueError("the teacher's flow goes to the next frame only: no frame_stride with a teacher")
         super().__init__(len(self.items))
 
     def load_image(self, path: Path) -> torch.Tensor:
@@ -133,7 +124,6 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         gt    = np.load(self.gt_root / f"{Path(name).stem}.npz")
         depth = torch.tensor(gt["depth"], dtype=torch.float32)[None, None]
         nxt   = index + self.stride
-        hole  = torch.tensor(gt["filled"].astype(bool))[None, None] if not self.use_filled and "filled" in gt else None
         gates = slice(index, nxt)
         if nxt < len(self.pair_ok) and self.pair_ok[gates].all() and self.temporal_ok[gates].all() \
                 and self.consistent[index] and self.consistent[nxt] \
@@ -142,21 +132,11 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
                 flow = torch.tensor(gt["flow"], dtype=torch.float32).unsqueeze(0) if "flow" in gt \
                        else torch.full((1, 2, self.height, self.width), float("nan"))
             else:
-                src = gt["depth"].astype(np.float32)
-                flow = self.strided_flow(np.where(hole[0, 0].numpy(), 0., src) if hole is not None else src, index, nxt)
+                flow = self.strided_flow(gt["depth"].astype(np.float32), index, nxt)
         else:       # last frame (no next frame) or inconsistent GT
             flow = torch.full((1, 2, self.height, self.width), float("nan"))
         if not self.stereo_ok[index]:
             depth = torch.zeros_like(depth)
-        if hole is not None:
-            depth = torch.where(hole, 0., depth)
-            flow = torch.where(hole, float("nan"), flow)
-        if self.teacher is not None:
-            t = np.load(self.teacher / f"{Path(name).stem}.npz")
-            disparity = torch.tensor(t["disparity"], dtype=torch.float32)[None, None]
-            depth = torch.where((depth <= 0) & (disparity > 0.5), self.K[0, 0, 0] * self.baseline / disparity.clamp(min=0.5), depth)
-            if "flow" in t:
-                flow = torch.where(torch.isfinite(flow), flow, torch.tensor(t["flow"], dtype=torch.float32).unsqueeze(0))
         if self.water_disparity is not None:
             water = torch.from_numpy(distance_transform_edt(gt["depth"] <= 0) > self.water_margin)[None, None]
             depth = torch.where(water, self.K[0, 0, 0] * self.baseline / float(self.water_disparity), depth)
@@ -183,8 +163,8 @@ class EIVA_StereoSequence(SequenceBase[StereoFrame]):
         cls._enforce_config_spec(config, {
             "root": lambda s: isinstance(s, str),
             "gt"  : lambda s: isinstance(s, str),
-        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, photo_rel, photo_floor, use_filled,
-                                        # teacher, water_disparity, water_margin, frame_range, frame_stride, frame_offset
+        }, allow_excessive_cfg=True)    # optional: max_scale_error, max_flow_error, photo_rel, photo_floor,
+                                        # water_disparity, water_margin, frame_range, frame_stride, frame_offset
 
 
 @functools.lru_cache(maxsize=None)

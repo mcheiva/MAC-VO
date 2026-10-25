@@ -275,10 +275,7 @@ class CovAwareSelector(IKeypointSelector):
         # Derive quality map
         quality_map = depth0_cov_map + depth1_cov_map
         if flow_cov_map is not None:
-            # Upstream score: sigma_uu + sigma_vv - 2 sigma_uv, the variance of u - v (the trace while sigma_uv = 0, as
-            # for the shipped head). flow_score: trace ranks by sigma_uu + sigma_vv for heads with sigma_uv.
-            uv_term = 0. if getattr(self.config, "flow_score", "upstream") == "trace" else 2 * flow_cov_map[:, 2]
-            flow_cov_map = (flow_cov_map[:, 0] + flow_cov_map[:, 1] - uv_term).unsqueeze(1)
+            flow_cov_map = (flow_cov_map[:, 0] + flow_cov_map[:, 1] - 2 * flow_cov_map[:, 2]).unsqueeze(1)
             quality_map *= flow_cov_map
         
         # Apply NMS on quality map
@@ -346,7 +343,7 @@ class CovAwareSelector(IKeypointSelector):
             "kernel_size"   : lambda k: isinstance(k, int) and k > 0 and (k % 2 == 1),
             "max_depth_cov" : lambda c: isinstance(c, (int, float)) and c > 0.,
             "max_match_cov" : lambda c: isinstance(c, (int, float)) and c > 0.
-        }, allow_excessive_cfg=True)    # optional: flow_score ("upstream" | "trace")
+        })
 
 
 class CovAwareSelector_NoDepth(IKeypointSelector):

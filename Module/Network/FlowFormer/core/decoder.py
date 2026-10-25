@@ -151,12 +151,12 @@ class MemoryDecoder(nn.Module):
         delta = delta.view(1, 2*r+1, 2*r+1, 2)
         self.register_buffer("delta", delta, persistent=False)
             
-    def upsample_flow(self, flow, mask, scale: float = 8.):
-        """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination (values times `scale`) """
+    def upsample_flow(self, flow, mask):
+        """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
         N, C, H, W = flow.shape
-
+        
         mask = mask.view(N, 9, 8, 8, H, W).softmax(dim=1)
-        flow_padded = pad_constant_zero(scale * flow, (1, 1, 1, 1))
+        flow_padded = pad_constant_zero(8 * flow, (1, 1, 1, 1))
         up_flow = F.unfold(flow_padded, (3, 3), padding=0).view(N, C, 9, H, W)
         weighted = (mask.unsqueeze(1) * up_flow.unsqueeze(-3).unsqueeze(-3)).sum(dim=2)
         

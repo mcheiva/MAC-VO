@@ -13,8 +13,6 @@ from collections import defaultdict
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
 from Train.MatchingNet.loss import sequence_loss, sequence_metric
-from Train.MatchingNet.rotation import random_rotations, rotate_second
-from Train.MatchingNet.underwater import right_view_depth, underwater_pair
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
 
@@ -102,12 +100,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     # Stereo supervision (handoff 5.4): odd steps train on the (left, right) pair of the current frame
     # instead of the temporal pair, the only supervision of the disparity sigma behind the 3D covariance.
     use_stereo = bool(modlecfg.get("stereo", False))
-    # underwater_aug: share of the samples with a dense depth (TartanAir) rendered through random water (underwater.py)
-    underwater_p = float(modlecfg.get("underwater_aug", 0.))
     # water_sigma: covariance negatives on open water (loss.water_hinge), from EIVA's sparse GT depth (utils.water_mask)
     water_sigma = modlecfg.get("water_sigma", None)
-    # rotation_aug: share of the temporal samples whose second camera turns by U(0, rotation_max_deg) (rotation.py)
-    rotation_p, rotation_deg = float(modlecfg.get("rotation_aug", 0.)), float(modlecfg.get("rotation_max_deg", 30.))
     running: dict[str, defaultdict[str, list[float]]] = {"temporal": defaultdict(list), "stereo": defaultdict(list)}
 
     total_steps = 0
@@ -125,19 +119,6 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 assert cur.gt_flow is not None and cur.flow_mask is not None
                 img1, img2 = cur.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
                 gt_flow, flow_mask = cur.gt_flow.cuda(), cur.flow_mask.cuda()
-            if underwater_p > 0 and cur.gt_depth is not None and frameData.nxt.stereo.gt_depth is not None:
-                depth1 = cur.gt_depth.cuda()
-                if kind == "stereo":
-                    depth2 = right_view_depth(depth1, (cur.K[:, 0, 0] * cur.baseline).cuda())
-                else:
-                    depth2 = frameData.nxt.stereo.gt_depth.cuda()
-                img1, img2 = underwater_pair(img1, img2, depth1, depth2, underwater_p)
-            if rotation_p > 0 and kind == "temporal":
-                R, chosen = random_rotations(img2.size(0), rotation_deg, rotation_p, img2.device)
-                if chosen.any():        # the others stay as they are (their GT keeps targets that leave the image)
-                    i = chosen.nonzero().squeeze(1)
-                    img2, gt_flow, flow_mask = img2.clone(), gt_flow.clone(), flow_mask.clone()
-                    img2[i], gt_flow[i], flow_mask[i] = rotate_second(img2[i], gt_flow[i], flow_mask[i], cur.K.cuda()[i], R[i])
 
             flow, cov = model(img1, img2)
             water = water_mask(cur.gt_depth.cuda(), int(modlecfg.get("water_margin", 24))) if water_sigma and cur.gt_depth is not None else None

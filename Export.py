@@ -21,7 +21,7 @@ Wrapper conventions (must match the consumer pipeline):
     channels, log sigma per axis) `cov` is the raw log-uncertainty and the
     consumer applies `exp(2 * cov)` itself. Same reasoning: in-graph exp plus
     consumer exp = double-exp explosion.
-  * Any other head (--ckpt: the Cholesky head, single-shot heads) emits the
+  * The Cholesky head (--ckpt, 3 channels) emits the
     covariance entries [sigma_uu, sigma_vv, sigma_uv] in fp32 in-graph
     (handoff 7.4): sigma^2 = exp(2 c) reaches ~1.6e5, beyond fp16. The
     consumer must then read 3 channels and skip its exp (handoff 7.6).

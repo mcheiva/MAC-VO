@@ -12,9 +12,6 @@ Model:
   add_noise: True
   # Covariance loss on every pixel with a finite target; True restricts it to flow_mask-valid pixels (ablation).
   cov_mask: False
-  # beta-NLL weight stopgrad(det Sigma)^(beta / 2); 0 is the plain NLL (handoff 5.3). With the flow frozen,
-  # beta only reweights pixels by sigma^(2 beta), towards the uncertain ones the selector discards: 0.5 is an ablation.
-  beta: 0.0
   # Alternate temporal and stereo (left/right, target -fx b / depth) batches (handoff 5.4).
   stereo: True
   # Negatives: EIVA's open water (no GT within water_margin px) has no correspondence; push sigma above water_sigma px

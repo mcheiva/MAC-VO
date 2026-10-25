@@ -1,6 +1,0 @@
-# Welland (1 dive), once: held out by CovHeadEIVA_Vobster
--   type: EIVA_NoIMU
-    name: eiva_welland
-    args:
-        root: D:/Datasets/EIVA/welland/Welland_test_first_dive
-        gt: D:/Datasets/EIVA_GT/welland
