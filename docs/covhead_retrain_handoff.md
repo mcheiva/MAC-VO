@@ -1087,10 +1087,16 @@ original matcher 26), but plane_nose goes to 0.091 / 5.71 from one step: #544, 7
 There a diver's exhaled bubble cloud rises through the image (#544-#546; the image check flags those frames, stereo
 28%, temporal 15%). The cause is not the network's reading of the bubbles: on #544 the turns model is the least fooled
 (background EPE md 1.86 px against 2.67 for gaps; of its 20% most confident pixels 0.4% sit on bubbles moving unlike
-the background, against ~30% for gaps and for the original matcher; bubble sigma md 137 px). Where MAC-VO's step
-goes wrong there is open (instrumented clip runs, `debug_kp.py`). tail1 also loses at #291 (33 mm against < 1), in a
-stretch whose GT the images do not confirm (~55%). Until that is understood the turns stay out of the production
-recipe.
+the background, against ~30% for gaps and for the original matcher; bubble sigma md 137 px). Instrumented clip runs
+(`debug_kp.py`, frames 525-560) show the mechanism: the cloud raises sigma almost everywhere, so the selector keeps
+only 11 (gaps) / 14 (turns) keypoints on #544 instead of 200, all on the background with flow errors of 0.2 px; for the
+turns model 4 of the 14 have disparity errors > 3 px (a bubble hiding the match in the right image), and with so few
+points the step comes out at 822 mm (GT 51; gaps 63). A fragile frame - stereo next to a one-sided occlusion when the
+keypoint count collapses - more than a defect of the turns; chance decides which few points survive. tail1 also loses
+at #291 (33 mm against < 1), in a stretch whose GT the images do not confirm (~55%).
+
+Both production candidates are trained (gaps + gate on GPU 1, + turns on GPU 0) so the choice can be made on their
+results.
 
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
