@@ -1115,6 +1115,11 @@ results.
   the bubble frames, where every model loses a step - the original matcher's negatives head 111 mm).
 - Open water in-sample: 0.2-0.5 px on tail1, 0.3-1.8 px on Welland (far).
 
+The fold W turns model on TartanAir: network level as gaps (temporal 1.239, stereo 0.988 px, stereo NLL 2.02 against
+2.38); MAC-VO on the 8 seaside sequences ATE 1.169 m (fold W gaps 1.103), RTE 0.0108, ROE 0.0565 - about neutral
+(single runs). Every fine-tuned matcher loses seaside E003 (1.03-1.20 m against 0.39-0.55 with the original
+matcher): open.
+
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
 engine (log-sigma layout, opt level 5, parity, timing), and in-sample MAC-VO on all EIVA dives as a sanity check.
