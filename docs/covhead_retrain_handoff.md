@@ -1124,8 +1124,21 @@ matcher): open.
 in-sample tail1 #331 EPE 10.9 px (gaps candidate 16.6), open water far (0.1-0.9 px); TartanAir network level as the
 gaps candidate (temporal 1.264, stereo 1.036 px; better calibrated, stereo NLL 3.84 against 4.18). But MAC-VO on the 8
 seaside sequences: ATE 1.434 m - worse than shipped (1.354) - from Hard H003 (2.05 against 0.30 for the gaps candidate,
-0.61 shipped) and H000 (2.48 against 1.97); RTE 0.0122, ROE 0.0611. **The gaps + gate candidate is the production
-choice**; the turns stay experimental.
+0.61 shipped) and H000 (2.48 against 1.97); RTE 0.0122, ROE 0.0611. In-sample EIVA at 0.25 px: Welland 0.079 / 0.91,
+plane_mid 0.011 / 1.39, plane_nose 0.076 / 5.39 (the bubble frames), plane_tail1 0.048 / 2.30 (the turn fixed),
+plane_tail2 0.038 / 3.43. Engine 62.8 MB, parity 0.011 / 0.020 px on confident pixels, 57.5 ms (shipped 55.9 on the
+same card). **The gaps + gate candidate is the production choice**; the turns stay experimental.
+
+Open after this round:
+1. Release decision on the gaps + gate candidate (drop-in engine, same interface as shipped; MAC-VO unchanged). There
+   is no held-out EIVA site left for it: its evidence is the two folds (Vobster -31% ATE / -35% frame-to-frame,
+   Welland -30% / -31% against shipped) and TartanAir (-18% ATE).
+2. The sharp-turn pair (tail1 #331): gaps alone leave 16.6 px in-sample; the turns fix it but cost TartanAir H003 /
+   H000. A smaller turn share or angle, or turns only on EIVA pairs, is the next thing to try.
+3. Fragile frames: when an occluder (bubbles) leaves ~10 keypoints, a few bad disparities next to one-sided occlusion
+   decide the pose. Stereo sigma at such points should be larger (a head-side target: occlusion in the right view).
+4. Seaside E003 regresses with every fine-tuned matcher.
+5. The head's stereo overconfidence on an unseen site (tail > 9 ~9-13% against 4-5%).
 
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
