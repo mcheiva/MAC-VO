@@ -1,0 +1,26 @@
+# Preprocess.yaml plus the EIVA dives (GeneralStereo, 2816x2816): resized 4x to 704x704, the resolution the MACVO_TRT
+# runtime feeds the engine (K follows). Other dataset types are as in Preprocess.yaml (TartanAir unchanged).
+KITTI: 
+  - type: SmartResizeFrame
+    args: 
+      height: 376
+      width : 780
+      interp: nearest
+Zed:
+  - type: SmartResizeFrame
+    args: 
+      height: 640
+      width : 640
+      interp: nearest
+VBR_Stereo:
+  - type: SmartResizeFrame
+    args: 
+      height: 640
+      width : 640
+      interp: nearest
+GeneralStereo:
+  - type: SmartResizeFrame
+    args:
+      height: 704
+      width : 704
+      interp: bilinear

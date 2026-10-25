@@ -14,6 +14,12 @@ and its context, is `docs/covhead_retrain_handoff.md`; this document is the map 
   GT itself breaks (GT check > 3 px, missing poses) and every segment is aligned on its own. The old whole-dive
   numbers were dominated by a few broken GT frames.
 - **Deployed precision** (fp16 encoder / bf16 decoder, 704x704 INTER_AREA) for every MAC-VO number.
+- **MAC-VO is not bit-deterministic run to run** in this configuration (CUDA-graph frontend, reduced precision),
+  although the network is: five runs of one model on plane_mid (three with the same code on the same GPU) spread over
+  ATE 0.014-0.016 m and frame-to-frame 1.83-1.93 mm (about +-7% / +-3%), positions differing by up to 11 mm. The
+  handoff log's "MAC-VO runs are deterministic, so one run each" does not hold here: every MAC-VO number is a single
+  run, so differences of ~10% between models on one dive are within noise. The gains against shipped (30-43%), the
+  breaks (metres) and the fragile-frame steps are far outside it.
 
 ## 1. Outcome: two working solutions
 
@@ -117,49 +123,76 @@ stereo alternation, TartanAir + seaside + both EIVA sites, `water_sigma: 32`. Ex
 **B (matcher + head).**
 1. Matcher: `FlowFTEIVA_AllA_water_gaps` (flow mode, decoder + cost, fp32, 20k steps, batch 2) on every dive's even
    blocks: far water, frame gaps, image gate, TartanAir + seaside.
-2. Head: `CovHeadEIVA_AllB_v2neg_gaps` restored from step 1, on the odd blocks: negatives, gaps, gate.
+2. Head: `CovHeadEIVA_AllB_v2neg_gaps_prod` (restores step 1's checkpoint) on the odd blocks: negatives, gaps, gate.
 3. Release checks: `check_eiva_water.py` on a site the matcher has not seen; TartanAir MAC-VO.
 4. Export with `--cov-layout log-sigma`.
 
-## 5. Code map for the minimal version
+**Commands** (from the repo root; one job per GPU):
 
-Against `main`, outside the docs and the sequence lists: 86 files, +9.3k lines, most of it the 51 added training
-configs; plus 35 added sequence lists.
+    # GT for a dive (pose_gt.txt + pointcloud_gt.txt), then its checks
+    python -m Scripts.Dataset.make_eiva_gt     --seq D:/Datasets/EIVA/<site>/<dive> --out D:/Datasets/EIVA_GT_v2/<dive>
+    python -m Scripts.Dataset.check_eiva_gt    --seq D:/Datasets/EIVA/<site>/<dive> --gt D:/Datasets/EIVA_GT_v2/<dive>
+    python -m Scripts.Dataset.check_eiva_photo --seq D:/Datasets/EIVA/<site>/<dive> --gt D:/Datasets/EIVA_GT_v2/<dive>
 
-**Needed by both A and B**
-- `Module/Network/FlowFormerCov/covhead.py`: the recurrent Cholesky head (`cov_channels` 2 / 3), `cov_entries`,
-  `marginal_log_sigma`; `flownet.py`: 2- or 3-channel inference; `FlowFormer/core/decoder.py` (`upsample_flow` scale
-  for log sigma); `FlowFormer/core/gru.py` (`FusedGRUPair` weight casts for deployment-precision training).
-- `Train/MatchingNet/loss.py`: log-space Cholesky NLL, `water_hinge`; `utils.py`: `stereo_target`, `water_mask`,
-  `IndexedDataset`; `train_flowformer.py`: cov mode, stereo alternation, encoder / decoder dtypes, `water_sigma`, the
-  loader fixes.
-- `DataLoader/Dataset/EIVA.py`: the loader with the scale / flow-error / photo gates; `TartanAir.py` + `Zipped.py`.
-- `Scripts/Dataset/make_eiva_gt.py`, `check_eiva_gt.py`, `check_eiva_photo.py`; `Export.py --cov-layout`.
+    # A: the head (restores the 25k base, Model/FlowFormerCovChol10-19-17-52-09/25000.pth = CovHeadChol)
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/CovHeadEIVA_AllWater_v2neg.yaml --training_mode cov
+    # B: the matcher, then the head (set restore_ckpt in the head config to the matcher's 20000.pth)
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/FlowFTEIVA_AllA_water_gaps.yaml --training_mode flow
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/CovHeadEIVA_AllB_v2neg_gaps_prod.yaml --training_mode cov
 
-**Needed by B only**
-- `train_flowformer.py`: flow mode with `flow_trainable`; `EIVA.py`: `water_disparity`, `frame_range`,
-  `frame_stride` / `frame_offset` (gap flow); `Scripts/Dataset/check_eiva_water.py`.
+    # network level on the held-out seaside pairs (or a fold config's Evaluate split)
+    python -m Train.MatchingNet.evaluate --config Config/Train/CovHeadCholWater.yaml --precision fast --pairs 600 --ckpt <ckpt> ...
+    # drop-in engine
+    python Export.py --mode fast --ckpt <ckpt> --cov-layout log-sigma --onnx <out>.onnx
+    # MAC-VO (shipped / A / B frontends; EIVA dives in Config/Sequence/EIVA, TartanAir as usual)
+    python MACVO.py --odom Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast_A.yaml --data Config/Sequence/EIVA/plane_mid.yaml --noeval
+    python -m Scripts.Dataset.eval_eiva_trajectory --seq D:/Datasets/EIVA/vobster_quay/plane_mid \
+        --gt D:/Datasets/EIVA_GT_v2/plane_mid --poses <run>/poses.npy [...]       # the split protocol
 
-**Evaluation and tooling (keep, not needed to train or run)**
-- `Train/MatchingNet/evaluate.py`, `Scripts/Dataset/eval_eiva_trajectory.py`, `Scripts/Parity/*`,
-  `Scripts/Dataset/download_tartanair_v1.py`, `make_tartanair_v1_seqs.py`; `Scripts/AdHoc/CovLossCheck.py`,
-  `StereoTailAnalysis.py` (diagnostics; candidates to drop).
+The site folds of each recipe are the same commands with the fold configs (A: `CovHeadEIVA_WellandWater_v2neg`,
+`CovHeadEIVA_VobsterWater_v2neg`; B: `FlowFTEIVA_WellandA_water_gaps` -> `CovHeadEIVA_WellandBWater_v2_gaps_crossfit`,
+`FlowFTEIVA_VobsterA_water_gaps` -> `CovHeadEIVA_VobsterBWater_v2neg_gaps_crossfit`), and MAC-VO with the fold's
+checkpoint as the frontend weight.
 
-**Experiment-only: candidates for removal**
-- `covhead.py`: `SingleShotCovHead`, the inlier head (`inlier_cholesky`, `cov_channels: 4`), the cues
-  (`correlation_peak_stats`, `cov_cues`); `gru.py`'s single-GRU path (`gru_b = None`) that only the single-shot head
-  uses; `loss.py`: `cov_mixture_nll`, `beta`, `cov_mask`, `finalcov`.
-- `EIVA.py`: `teacher`, `use_filled`; `Scripts/Dataset/make_eiva_teacher.py`.
-- `Train/MatchingNet/underwater.py` + `underwater_aug`; `Train/MatchingNet/rotation.py` + `rotation_aug` (or keep
-  as experimental for the sharp-turn follow-up).
-- `Scripts/Dataset/voxel_clean.py` (tool, no effect on the GT we use).
-- VO-side options, all off by default: `cov_scale`, `cov_offdiag` (`Frontend.py`), `flow_score`
-  (`KeypointSelector.py`). Removing them returns the VO files to upstream except `Matching.py`'s `from_cov`, which
-  only matters if the PyTorch frontend passes 3 channels (see below). `MACVO.py`'s rerun `set_time` change is an
-  unrelated compatibility fix.
-- `Config/Train`: 51 added configs; keep the recipe configs of the chosen solution (production + its two folds) and
-  the base heads they restore from (`CovHeadChol`, `CovHeadCholDeploy`, `CovHeadCholWater`).
-  `Config/Sequence/Training_Dataset`: likewise.
+## 5. What the minimal branch contains (`covhead-minimal`)
+
+`covhead-minimal` is `covhead-retrain` trimmed to A and B; `covhead-retrain` keeps every experiment. Against `main`:
+
+**Model** (`Module/Network`): the recurrent covariance head with 2 (shipped) or 3 (Cholesky) channels, `cov_entries`,
+`marginal_log_sigma` and `cov_fp32` (`FlowFormerCov/covhead.py`); 2- or 3-channel inference and checkpoint loading
+(`flownet.py`); `FusedGRUPair` weight casts for deployment-precision training (`FlowFormer/core/gru.py`); a
+CUDA-graph-safe `bilinear_sampler` (`FlowFormer/core/utils.py`). `decoder.py` is upstream.
+
+**VO** (`Module/Frontend`, `MACVO.py`): `IMatcher.Output.from_cov`, which passes the Cholesky head's sigma_uv
+through (11 lines in `Matching.py`, one call in `Frontend.py`); the rerun >= 0.23 API in `MACVO.py`.
+`KeypointSelector.py`, `Project2to3.py` and the rest of the VO are upstream.
+
+**Training** (`Train/MatchingNet`): log-space Cholesky NLL and `water_hinge` (`loss.py`); stereo alternation,
+encoder / decoder dtypes, `flow_trainable`, `water_sigma`, the dataset / DataParallel / OneCycleLR fixes
+(`train_flowformer.py`); `stereo_target`, `water_mask`, `IndexedDataset` (`utils.py`); `evaluate.py`.
+
+**Data**: `EIVA_NoIMU` (`DataLoader/Dataset/EIVA.py`: GT loading, the scale / flow-error / photo gates,
+`water_disparity`, `frame_range`, `frame_stride` / `frame_offset`); TartanAir v1 from the zips (`TartanAir.py`,
+`Zipped.py`); `Scripts/Dataset`: `make_eiva_gt`, `check_eiva_gt`, `check_eiva_photo`, `check_eiva_water`,
+`eval_eiva_trajectory`, `download_tartanair_v1`, `make_tartanair_v1_seqs`.
+
+**Export and checks**: `Export.py --cov-layout log-sigma`, `Scripts/Parity/*`, `Scripts/AdHoc/StereoTailAnalysis.py`.
+
+**Configs**: A (`CovHeadEIVA_AllWater_v2neg` + 2 folds), B (`FlowFTEIVA_AllA_water_gaps`,
+`CovHeadEIVA_AllB_v2neg_gaps_prod` + 2 folds of each), the 25k base (`CovHeadChol`), the seaside evaluation split
+(`CovHeadCholWater`), the 15 sequence lists they include; MAC-VO: `Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast[_A|_B]`,
+`Config/Experiment/Common/Preprocess_EIVA.yaml`, `Config/Sequence/EIVA/*` (the six dives).
+
+**Removed** (still on `covhead-retrain`): the single-shot and inlier heads, the matching-confidence cues, the mixture
+likelihood and beta-NLL, the teacher targets and `make_eiva_teacher.py`, `use_filled`, the underwater and camera-turn
+augmentations, the VO-side diagnostics (`cov_scale`, `cov_offdiag`, `flow_score`), `voxel_clean.py`,
+`CovLossCheck.py`, 53 experiment configs and 20 sequence lists.
+
+**Verified after the trim**: every kept checkpoint (shipped, 25k, A and B, production and folds) gives bit-identical
+flow and covariance (fp32 CPU and fp16 / bf16 GPU, 144 arrays, max difference 0); every kept training config loads
+all its sequences with the same pair counts as before; A's and B's heads and B's matcher train (40-step runs);
+evaluation and the drop-in export run; MAC-VO on plane_mid with the trimmed and the untrimmed code agrees within MAC-VO's
+own run-to-run variation (section 0).
 
 **One parity detail to settle.** Every MAC-VO number above came from the PyTorch frontend with the 3-channel output
 (sigma_uv used in selection and `Project2to3`). The drop-in engines emit marginals (sigma_uv = 0), which is what the
@@ -169,7 +202,8 @@ change (`from_cov`) and let one A/B run confirm it.
 
 ## 6. Open
 
-1. Choose A or B (or A now, B after more validation), then trim the code to it.
+1. Both solutions are kept (`covhead-minimal`). The PyTorch frontend's marginal output (the parity detail above) is
+   the remaining step that would make the VO files identical to upstream.
 2. The sharp-turn pair (`plane_tail1` #331) is B's weak spot without turns (16.6 px in-sample vs the original's 5.2).
 3. Fragile frames: when an occluder (a diver's bubbles, `plane_nose` #544) leaves ~10 keypoints, a few wrong
    disparities next to one-sided occlusion decide the pose. Every model loses a step there.

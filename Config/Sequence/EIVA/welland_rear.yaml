@@ -1,0 +1,13 @@
+# EIVA dive, rectified stereo at 2816x2816 (intrinsics and baseline from processed/resized_sensor.yaml). Run with an
+# odometry config whose Preprocess resizes GeneralStereo to 704x704 (Config/Experiment/Common/Preprocess_EIVA.yaml).
+type: GeneralStereo
+name: eiva_welland_rear
+args:
+  root: D:/Datasets/EIVA/welland/welland_rear/processed
+  camera:
+    fx: 1862.928365467475
+    fy: 1862.928365467475
+    cx: 1414.1338500976562
+    cy: 1366.4861297607422
+  bl: 0.17007544637
+  format: jpg

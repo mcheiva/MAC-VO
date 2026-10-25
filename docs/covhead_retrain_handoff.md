@@ -2,6 +2,9 @@
 
 > The consolidated outcome (what worked, what did not, the two working solutions and the code map) is in
 > `docs/covhead_retrain_summary.md`. This file is the chronological record behind it.
+> Correction (2026-10-25): the statements below that MAC-VO runs are deterministic do not hold for the deployed
+> configuration (CUDA-graph frontend, fp16 / bf16): repeated runs of one model spread by about +-7% in ATE and +-3% in
+> frame-to-frame error on a dive (summary, section 0).
 
 Self-contained brief for an agent working on another machine. It describes what to change in
 the covariance head, how to train it on TartanAir with the backbone frozen, how to judge the

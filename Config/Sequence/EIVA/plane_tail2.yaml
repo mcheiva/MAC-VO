@@ -1,0 +1,13 @@
+# EIVA dive, rectified stereo at 2816x2816 (intrinsics and baseline from processed/resized_sensor.yaml). Run with an
+# odometry config whose Preprocess resizes GeneralStereo to 704x704 (Config/Experiment/Common/Preprocess_EIVA.yaml).
+type: GeneralStereo
+name: eiva_plane_tail2
+args:
+  root: D:/Datasets/EIVA/vobster_quay/plane_tail2/processed
+  camera:
+    fx: 1847.5905420747683
+    fy: 1847.5905420747683
+    cx: 1391.3
+    cy: 1407.177
+  bl: 0.17007674086397787
+  format: jpg

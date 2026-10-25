@@ -1,0 +1,97 @@
+# MAC-VO as evaluated in docs/covhead_retrain_summary.md, with solution A: the open-water-negatives head on the original matcher (CovHeadEIVA_AllWater_v2neg).
+# MACVO_Performant's pipeline in the deployed precision (fp16 encoder / bf16 decoder, CUDA-graph frontend) at the
+# shipped settings (min_flow_cov 0.25 px); the three configs differ only in name and frontend weight. The EIVA
+# dives (Config/Sequence/EIVA) are resized to 704x704 by Preprocess_EIVA; TartanAir runs unchanged.
+#   python MACVO.py --odom Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast_A.yaml --data Config/Sequence/EIVA/plane_mid.yaml
+
+Common:
+  # Some configurations are shared across multiple modules in Odometry, so I write them here.
+  device: &device cuda
+
+Odometry:
+  name: MACVO-EIVA-A-fast
+  args:
+    # Device directive to the VO system
+    # NOTE: the system may not follow this device config strictly since some module
+    # e.g. those rely on PWC-Net, only support running on cuda device.
+    device: *device
+    edgewidth: 32
+    num_point: 200 # Upper bound of KPs in each frame
+
+    # Match covariance for keypoint on first observation (sub-pixel uncertainty
+    # caused by the quantized pixel)
+    match_cov_default: 0.25
+
+    # Profiling the system using torch, generate chrome json trace file.
+    profile: false
+
+    # Mapping mode provides the dense mapping
+    mapping: false
+
+  cov:
+    obs:
+      type: MatchCovariance
+      args:
+        device: *device
+        kernel_size: 31
+        match_cov_default: 0.25
+        min_depth_cov: 0.05
+        min_flow_cov: 0.25
+
+  keypoint:
+    type: CovAwareSelector
+    args:
+      device: *device
+      kernel_size: 7
+      mask_width: 32
+      max_depth: auto
+      max_depth_cov: 250.0
+      max_match_cov: 100.0
+
+  mappoint:
+    # Mapping feature can be conveniently turn off by using 
+    # "type: NoKeypointSelector" instead of the config below.
+    type: MappingPointSelector
+    args:
+      device: *device
+      max_depth: 5.0
+      max_depth_cov: 0.005
+      mask_width: 32
+
+  frontend:
+    type: CUDAGraph_FlowFormerCovFrontend
+    args:
+      device: *device
+      weight: Model/FlowFormerCovEIVAAllWaterV2Neg10-24-00-54-50/15000.pth
+      enc_dtype: fp16
+      dec_dtype: bf16
+      decoder_depth: 12
+      enforce_positive_disparity: false
+
+  motion:
+    type: StaticMotionModel
+    args:
+
+  outlier:
+    type: CovarianceSanityFilter
+    args:
+  
+  postprocess:
+    type: MotionInterpolate
+    args:
+  
+  keyframe:
+    type: AllKeyframe
+    args:
+  
+  optimizer:
+    type: TwoFrame_PGO
+    args:
+      device: cpu
+      vectorize: true
+      parallel: true
+      graph_type: disp
+      autodiff: false
+
+Data: !include ../../../Sequence/EIVA/plane_mid.yaml
+Preprocess: !include ../../Common/Preprocess_EIVA.yaml
