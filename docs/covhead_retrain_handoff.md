@@ -1085,10 +1085,12 @@ But the trajectories get worse. MAC-VO on held-out Vobster at 0.25 px, split pro
 plane_mid 0.007 / 1.30 and plane_tail2 0.024 / 3.01 are the best yet and tail1's #331 step drops to 23 mm (gaps 119,
 original matcher 26), but plane_nose goes to 0.091 / 5.71 from one step: #544, 787 mm (gaps 37, original matcher 28).
 There a diver's exhaled bubble cloud rises through the image (#544-#546; the image check flags those frames, stereo
-28%, temporal 15%): large, coherent motion of independent objects, which the turns taught the matcher to read as the
-camera turning. tail1 also loses at #291 (33 mm against < 1), in a stretch whose GT the images do not confirm (~55%).
-The turns stay out of the production recipe until they are made safe with moving objects (smaller share or angle,
-or turns composed with independent motion).
+28%, temporal 15%). The cause is not the network's reading of the bubbles: on #544 the turns model is the least fooled
+(background EPE md 1.86 px against 2.67 for gaps; of its 20% most confident pixels 0.4% sit on bubbles moving unlike
+the background, against ~30% for gaps and for the original matcher; bubble sigma md 137 px). Where MAC-VO's step
+goes wrong there is open (instrumented clip runs, `debug_kp.py`). tail1 also loses at #291 (33 mm against < 1), in a
+stretch whose GT the images do not confirm (~55%). Until that is understood the turns stay out of the production
+recipe.
 
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
