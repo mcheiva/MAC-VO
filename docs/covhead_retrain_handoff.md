@@ -1098,6 +1098,23 @@ at #291 (33 mm against < 1), in a stretch whose GT the images do not confirm (~5
 Both production candidates are trained (gaps + gate on GPU 1, + turns on GPU 0) so the choice can be made on their
 results.
 
+**Production candidate, gaps + gate** (`FlowFTEIVA_AllA_water_gaps` -> `CovHeadEIVA_AllB_v2neg_gaps_prod`, engine
+`Model/FlowFormerCovEIVAAllBV2NegGapsProd10-25-02-52-11/MACVO_FrontendCov_EIVAProd_gaps_fast[_o5.plan|.onnx]`):
+
+- Held-out TartanAir seaside, network level: temporal EPE 1.237 (original matcher 1.550), stereo 1.028 (1.601),
+  calibration median 1.16 / 1.08, stereo NLL 4.18 (production negatives head 3.84, shipped 13.5).
+- MAC-VO on the 8 held-out seaside sequences: ATE 1.109 m (production negatives head 1.144, shipped 1.354), RTE 0.0110
+  (0.0112, 0.0120), ROE 0.0593 (0.0537, 0.0625); better on E001 / E002 / E004 / H003, worse on E003 (1.15 against 0.39)
+  and H000 (1.97 against 1.65).
+- Engine (log-sigma layout, trtexec 10.13 opt level 5, 63.2 MB): parity on the 25% most confident pixels 0.010 / 0.019
+  px, |d log sigma| 0.010 (PyTorch in the deployed precision 0.009 / 0.017); 58.3 ms at batch 2 against 56.6 for the
+  shipped engine.
+- In-sample (both sites trained, on other blocks; not a held-out result), split protocol at 0.25 px: Welland
+  0.073 / 0.81, plane_mid 0.009 / 1.33, plane_nose 0.042 / 3.84, plane_tail1 0.071 / 3.44, plane_tail2 0.032 / 3.03.
+  The two weak steps: tail1 #331 (135 mm; the sharp turn, in-sample #331 EPE 16.6 px) and plane_nose #545 (247 mm;
+  the bubble frames, where every model loses a step - the original matcher's negatives head 111 mm).
+- Open water in-sample: 0.2-0.5 px on tail1, 0.3-1.8 px on Welland (far).
+
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
 engine (log-sigma layout, opt level 5, parity, timing), and in-sample MAC-VO on all EIVA dives as a sanity check.
