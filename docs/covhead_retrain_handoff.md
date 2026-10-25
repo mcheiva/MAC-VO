@@ -1120,6 +1120,13 @@ The fold W turns model on TartanAir: network level as gaps (temporal 1.239, ster
 (single runs). Every fine-tuned matcher loses seaside E003 (1.03-1.20 m against 0.39-0.55 with the original
 matcher): open.
 
+**Production candidate with turns** (`FlowFTEIVA_AllA_water_gaps_rot` -> `CovHeadEIVA_AllB_v2neg_gaps_rot_prod`):
+in-sample tail1 #331 EPE 10.9 px (gaps candidate 16.6), open water far (0.1-0.9 px); TartanAir network level as the
+gaps candidate (temporal 1.264, stereo 1.036 px; better calibrated, stereo NLL 3.84 against 4.18). But MAC-VO on the 8
+seaside sequences: ATE 1.434 m - worse than shipped (1.354) - from Hard H003 (2.05 against 0.30 for the gaps candidate,
+0.61 shipped) and H000 (2.48 against 1.97); RTE 0.0122, ROE 0.0611. **The gaps + gate candidate is the production
+choice**; the turns stay experimental.
+
 Production candidate (GPU 1, after the turns run): `FlowFTEIVA_AllA_water_gaps` + `CovHeadEIVA_AllB_v2neg_gaps`, every
 dive incl. welland_rear on cross-fit halves, gaps + gate, no turns; TartanAir network level and MAC-VO, the drop-in
 engine (log-sigma layout, opt level 5, parity, timing), and in-sample MAC-VO on all EIVA dives as a sanity check.
