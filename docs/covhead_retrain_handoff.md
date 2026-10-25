@@ -1,5 +1,8 @@
 # Retraining the MAC-VO covariance head on the FlowFormer backbone: handoff brief
 
+> The consolidated outcome (what worked, what did not, the two working solutions and the code map) is in
+> `docs/covhead_retrain_summary.md`. This file is the chronological record behind it.
+
 Self-contained brief for an agent working on another machine. It describes what to change in
 the covariance head, how to train it on TartanAir with the backbone frozen, how to judge the
 result, and how to ship it as a TensorRT engine. Read it fully before editing.
