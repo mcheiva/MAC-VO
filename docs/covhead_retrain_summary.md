@@ -33,10 +33,11 @@ Vobster / Welland columns are the held-out site folds of each recipe; TartanAir 
 recipe (it never saw seaside). Against shipped:
 
 - **A** (head only): Vobster -43% ATE / -31% frame-to-frame, Welland -8% / -27%, TartanAir -16% ATE.
-  Engine: `Model/MACVO_FrontendCov_EIVA_A_HeadOnly_fast_o5.plan` (weights `Model/MACVO_FrontendCov_EIVA_A_HeadOnly.pth`).
+  Engine: `Model/MACVO_FrontendCov_EIVA_A_HeadOnly_fast_o5_b1.plan` (weights `Model/MACVO_FrontendCov_EIVA_A_HeadOnly.pth`).
 - **B** (matcher fine-tune + head): Vobster -31% / -35%, Welland -30% / -31%, TartanAir -18% ATE; flow error
   -20% (temporal) / -36% (stereo) on TartanAir, -26% stereo on held-out EIVA.
-  Engine: `Model/MACVO_FrontendCov_EIVA_B_MatcherHead_fast_o5.plan` (weights `Model/MACVO_FrontendCov_EIVA_B_MatcherHead.pth`).
+  Engine: `Model/MACVO_FrontendCov_EIVA_B_MatcherHead_fast_o5_b1.plan` (weights `Model/MACVO_FrontendCov_EIVA_B_MatcherHead.pth`).
+  (The static batch-1 plans replaced the dynamic batch 1..2 plans on 2026-10-26.)
 
 Both engines are drop-in: the same inputs, outputs and 2-channel log-sigma layout as the shipped engine
 (`Export.py --cov-layout log-sigma`), +3% time (58 ms against 56 ms at batch 2, RTX 4090), parity with PyTorch fp32
