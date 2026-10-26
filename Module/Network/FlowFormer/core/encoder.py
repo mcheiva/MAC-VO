@@ -61,7 +61,7 @@ class PatchEmbed(nn.Module):
         self.norm = nn.LayerNorm(embed_dim*2)
 
     def forward(self, x) -> tuple[torch.Tensor, list[int]]:
-        """Reference (token-major) implementation; forward_cf is the one used at inference."""
+        """Reference implementation; forward_tm is the one used by CostPerceiverEncoder."""
         B, C, H, W = x.shape    # C == 1
 
         pad_l = pad_t = 0
@@ -87,11 +87,12 @@ class PatchEmbed(nn.Module):
 
         return x, out_size
 
-    def forward_cf(self, x) -> tuple[torch.Tensor, list[int]]:
+    def forward_tm(self, x) -> tuple[torch.Tensor, list[int]]:
         """
-        Same function as forward(), but returns the normalised tokens channels-first,
-        [B*H1*W1, 2*dim, h*w], so the large token tensor is never transposed. LayerNorm is
-        written out over dim 1.
+        Same function as forward(), returning the normalised tokens token-major, [B*H1*W1, h*w, 2*dim]
+        (channel innermost; PyTorch convs produce NCHW, so this is the view the flatten/transpose below gives).
+        LayerNorm is written out over the last axis.
+        Token-major tokens + the one-layout cross-attention below ("tokmajor"): -0.76 ms in the TRT engine.
         """
         B, C, H, W = x.shape
         pad_r = (self.patch_size - W % self.patch_size) % self.patch_size
@@ -109,19 +110,20 @@ class PatchEmbed(nn.Module):
         patch_coord_enc = LinearPositionEmbeddingSine(patch_coord.view(1, 2, -1).permute(0, 2, 1), dim=self.dim)
         patch_coord_enc = patch_coord_enc.permute(0, 2, 1).view(1, -1, out_size[0], out_size[1])
         # ffn_with_coord[0](cat[x, pe]) == W[:, :dim] x + (W[:, dim:] pe + b). The second term is a
-        # constant [2*dim, h*w] that varies over position, so it cannot be a conv bias; as a GEMM
-        # over channels-first tokens the broadcast add and the ReLU fuse into the epilogue.
+        # constant [h*w, 2*dim] that varies over position, so it cannot be a conv bias; as a GEMM
+        # over token-major tokens the broadcast add and the ReLU fuse into the epilogue.
         w0, b0 = self.ffn_with_coord[0].weight, self.ffn_with_coord[0].bias
         w2, b2 = self.ffn_with_coord[2].weight, self.ffn_with_coord[2].bias
-        x = x.flatten(2)                                                 # [B, dim, h*w]
-        pe_term = F.conv2d(patch_coord_enc, w0[:, self.dim:], b0).flatten(2)   # [1, 2*dim, h*w]
-        x = F.relu(torch.matmul(w0[:, :self.dim, 0, 0], x) + pe_term)    # [B, 2*dim, h*w]
-        x = torch.matmul(w2[:, :, 0, 0], x) + b2[None, :, None]
-        mu = x.mean(dim=1, keepdim=True)
-        var = (x - mu).square().mean(dim=1, keepdim=True)
-        x = (x - mu) * torch.rsqrt(var + self.norm.eps)
-        x = x * self.norm.weight[None, :, None] + self.norm.bias[None, :, None]
-        return x, out_size
+        pe_term = F.conv2d(patch_coord_enc, w0[:, self.dim:], b0).flatten(2).transpose(1, 2)   # [1, h*w, 2*dim]
+        t = x.flatten(2).transpose(1, 2)                                                       # [B, h*w, dim]
+        t = F.relu(torch.matmul(t, w0[:, :self.dim, 0, 0].t()) + pe_term)                      # [B, h*w, 2*dim]
+        t = torch.matmul(t, w2[:, :, 0, 0].t()) + b2
+        # Written out, not F.layer_norm: the LayerNormalization op gets an fp32 intermediate in TRT (+0.25 ms).
+        mu = t.mean(dim=-1, keepdim=True)
+        var = (t - mu).square().mean(dim=-1, keepdim=True)
+        t = (t - mu) * torch.rsqrt(var + self.norm.eps)
+        t = t * self.norm.weight + self.norm.bias
+        return t, out_size
 
 
 class VerticalSelfAttentionLayer(nn.Module):
@@ -249,7 +251,7 @@ class CrossAttentionLayer(nn.Module):
     def forward(self, query, tgt_token):
         """
             x: [BH1W1, H3W3, D]
-            Reference (token-major) implementation; forward_cf is the one used at inference.
+            Reference implementation; forward_tm is the one used by CostPerceiverEncoder.
         """
         short_cut = query
         query = self.norm1(query)
@@ -260,36 +262,72 @@ class CrossAttentionLayer(nn.Module):
 
         return x
 
-    def forward_cf(self, query: torch.Tensor, tgt_cf: torch.Tensor) -> torch.Tensor:
+    def forward_tm(self, query: torch.Tensor, tgt: torch.Tensor) -> torch.Tensor:
         """
         Same function as forward() for a constant query (the learned latent tokens, [1, Q, C])
-        and channels-first targets tgt_cf [N, D, T]. Re-associated so the K and V projections
+        and token-major targets tgt [N, T, D]. Re-associated so the K and V projections
         of the N*T target tokens are never materialised:
             scores_qh = (q_h Wk_h) . xn            (q_h bk_h is constant over keys: softmax-invariant)
             out_qh    = (A_qh . xn) Wv_h^T + bv_h   (rows of A sum to 1)
-        Exact in real arithmetic; fp rounding differs from forward().
+        Exact in real arithmetic; fp rounding differs from forward(). The three helpers are separable patches.
         """
-        N = tgt_cf.shape[0]
+        N = tgt.shape[0]
         heads = self.multi_head_attn.heads
         Q = query.shape[1]
-        qk_dim = self.q.out_features
-        hd = qk_dim // heads
-        q = self.q(self.norm1(query))                                   # [1, Q, qk_dim]
-        q = q.view(Q, heads, hd).permute(1, 0, 2)                       # [h, Q, hd]
-        wk = self.k.weight.view(heads, hd, -1)                          # [h, hd, D]
-        qp = torch.matmul(q, wk).reshape(heads * Q, -1)                 # [h*Q, D]
-        scale = hd ** -0.5
-        scores = torch.matmul(qp * scale, tgt_cf)                       # [N, h*Q, T]
-        attn = scores.softmax(dim=-1)
-        z = torch.matmul(attn, tgt_cf.transpose(1, 2))                  # [N, h*Q, D]
-        z = z.view(N, heads, Q, -1)
-        wv = self.v.weight.view(heads, hd, -1)                          # [h, hd, D]
-        out = torch.matmul(z, wv.transpose(1, 2))                       # [N, h, Q, hd]
-        out = out + self.v.bias.view(1, heads, 1, hd)
-        out = out.permute(0, 2, 1, 3).reshape(N, Q, heads * hd)         # heads concatenated as in forward()
+        hd = self.q.out_features // heads
+        qp = self._query_keys(query, heads, Q, hd)                      # [Q*h, D]
+        z = self._attend_tokens(qp * hd ** -0.5, tgt)                   # [N, Q*h, D]
+        D = z.shape[-1]
+        z = z.reshape(N * Q, heads * D)                                 # rows (n, q), cols (h, d)
+        out = torch.matmul(z, self._v_block_diag(heads, hd)) + self.v.bias   # [N*Q, h*hd], cols (h, j)
+        out = out.view(N, Q, heads * hd)                                # heads concatenated as in forward()
         x = query + self.proj_drop(self.proj(out))
         x = x + self.drop_path(self.ffn(self.norm2(x)))
         return x
+
+    def _query_keys(self, query: torch.Tensor, heads: int, Q: int, hd: int) -> torch.Tensor:
+        """q_h Wk_h of the latent queries, rows ordered (query, head): z then needs no transpose ("vproj")."""
+        q = self.q(self.norm1(query))                                   # [1, Q, qk_dim]
+        q = q.view(Q, heads, hd).permute(1, 0, 2)                       # [h, Q, hd]
+        qp = torch.matmul(q, self.k.weight.view(heads, hd, -1))         # [h, Q, D]
+        return qp.permute(1, 0, 2).reshape(Q * heads, -1)               # [Q*h, D]
+
+    def _attend_tokens(self, qp: torch.Tensor, tgt: torch.Tensor) -> torch.Tensor:
+        """softmax(qp . tgt^T) . tgt -> [N, Q*h, D]."""
+        # "scoresT" + "smaxlast": scores computed as tokens . q^T, so tgt is only read token-major (one GEMM), and
+        # the softmax is taken over the last axis of the transposed view so TRT/Myelin emits a one-pass softmax.
+        # Exact in real arithmetic; -0.6 ms (scoresT) and -0.2 ms (smaxlast) in the TRT engine.
+        st = torch.matmul(tgt, qp.t())                                  # [N, T, Q*h]
+        return torch.matmul(st.transpose(1, 2).softmax(dim=-1), tgt)
+
+    def _v_block_diag(self, heads: int, hd: int) -> torch.Tensor:
+        """
+        "vproj": [heads*D, heads*hd] block-diagonal V weight (block h = v.weight[h*hd:(h+1)*hd].T), so the
+        per-head V projection of z is one GEMM instead of a batch-N*heads matmul whose weight TRT broadcasts
+        into a 254 MB tensor (-0.52 ms in the TRT engine). The zero blocks add exact zeros: bit-identical.
+        """
+        wv = self.v.weight
+        def build():
+            # == torch.block_diag(*[wv[h*hd:(h+1)*hd].t() for h in range(heads)]), which has no ONNX export. A
+            # where() against an identity mask copies the diagonal blocks (bit-identical, -0.0 weights included)
+            # and writes +0.0 elsewhere, so a trace with grad enabled exports it as ordinary ops.
+            w = wv.reshape(heads, hd, -1).transpose(1, 2)               # [h, D, hd]
+            diag = torch.eye(heads, dtype=torch.bool, device=wv.device)[:, None, :, None]
+            zero = torch.zeros((), dtype=wv.dtype, device=wv.device)
+            return torch.where(diag, w[:, :, None, :], zero).reshape(heads * w.shape[1], heads * hd)
+        # Gated on grad mode: with grad enabled (training) it is rebuilt every forward, differentiable, so it
+        # always follows the weight. Grad-free (export / inference) it is cached, so a trace sees one constant
+        # instead of the block_diag ops; keyed on the weight's version counter, so load_state_dict() or an
+        # optimizer step rebuilds it. Inference tensors carry no version counter: never cached. Caveat: a write
+        # through `.data` does not bump the version, so it leaves the cache stale (call `del m._wbd_cache`).
+        if torch.is_grad_enabled() or wv.is_inference():
+            return build()
+        key = (wv._version, wv.data_ptr(), wv.dtype, wv.device)
+        cached = getattr(self, "_wbd_cache", None)
+        if cached is None or cached[0] != key:
+            cached = (key, build().detach())
+            self._wbd_cache = cached
+        return cached[1]
 
 
 class CostPerceiverEncoder(nn.Module):
@@ -323,8 +361,8 @@ class CostPerceiverEncoder(nn.Module):
         B, heads, H1, W1, H2, W2 = cost_volume.shape
         cost_maps = cost_volume.permute(0, 2, 3, 1, 4, 5).contiguous().view(B*H1*W1, self.cost_heads_num, H2, W2)
         
-        x, size = self.patch_embed.forward_cf(cost_maps)        # B*H1*W1, C, size[0]*size[1]
-        x = self.input_layer.forward_cf(self.latent_tokens, x)  # B*H1*W1, tokens, C
+        x, size = self.patch_embed.forward_tm(cost_maps)        # B*H1*W1, size[0]*size[1], C
+        x = self.input_layer.forward_tm(self.latent_tokens, x)  # B*H1*W1, tokens, C
 
         short_cut = x
 

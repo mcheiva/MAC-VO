@@ -161,7 +161,9 @@ checkpoint as the frontend weight.
 **Model** (`Module/Network`): the recurrent covariance head with 2 (shipped) or 3 (Cholesky) channels, `cov_entries`,
 `marginal_log_sigma` and `cov_fp32` (`FlowFormerCov/covhead.py`); 2- or 3-channel inference and checkpoint loading
 (`flownet.py`); `FusedGRUPair` weight casts for deployment-precision training (`FlowFormer/core/gru.py`); a
-CUDA-graph-safe `bilinear_sampler` (`FlowFormer/core/utils.py`). `decoder.py` is upstream.
+CUDA-graph-safe `bilinear_sampler` (`FlowFormer/core/utils.py`). `decoder.py` is not upstream any more: it, `encoder.py`,
+`twins.py` and `pad_helper.py` carry the deployment rewrites (`Scripts/Parity/test_exact.py` checks them against the
+unpatched code).
 
 **VO** (`Module/Frontend`, `MACVO.py`): `IMatcher.Output.from_cov`, which passes the Cholesky head's sigma_uv
 through (11 lines in `Matching.py`, one call in `Frontend.py`); the rerun >= 0.23 API in `MACVO.py`.

@@ -135,6 +135,15 @@ class MemoryCovDecoder(MemoryDecoder):
 
         flow_predictions = []
         cov_predictions = []
+        # "covsum": the per-iteration cov deltas are summed once after the loop instead of running-added. Nothing in
+        # the loop reads cov_coords1, so TRT would otherwise defer the 12 running adds into the final upsample kernel
+        # and recompute the 12-term sum for each of the 9 taps of every output pixel (-0.14 ms with `upsample`
+        # on top of its own gain, -0.44 ms together). Gated: eval only (training upsamples every iteration, so
+        # the running value is needed), and only for the 3-channel head, whose accumulator starts at 0, so the
+        # one-shot sum is exact in real arithmetic (fp32 rounding <= 5e-7). The 2-channel head accumulates on the pixel grid
+        # (start value flow_coords1), where a separate sum would round differently: it keeps the running add.
+        defer_cov = (not self.training) and not self.log_sigma_output
+        cov_deltas = []
 
         context   = self.proj(context)
         flow_net, flow_inp  = torch.split(context, [128, 128], dim=1)
@@ -190,9 +199,14 @@ class MemoryCovDecoder(MemoryDecoder):
                 self.iter_log.append(delta_flow_fp32.norm(dim=1).mean().item())
 
             delta_cov_fp32 = delta_cov.to(dtype=torch.float32)
-            cov_coords1    = cov_coords1 + delta_cov_fp32
+            if defer_cov:
+                cov_deltas.append(delta_cov_fp32)
+            else:
+                cov_coords1 = cov_coords1 + delta_cov_fp32
 
             if needs_upsample:
+                if defer_cov:
+                    cov_coords1 = cov_coords0 + torch.stack(cov_deltas, 0).sum(0)
                 up_mask = self.update_block.mask(flow_net)
                 up_mask = 0.25 * up_mask.to(dtype=torch.float32)
                 flow_up = self.upsample_flow(flow_coords1 - flow_coords0, up_mask)
