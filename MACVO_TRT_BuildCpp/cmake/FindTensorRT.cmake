@@ -43,15 +43,13 @@ endif()
 # so we only have to prepend the legacy NVIDIA aliases plus the CUDA root.
 # ---------------------------------------------------------------------------
 set(_TRT_SEARCH_HINTS "")
-foreach(_var
-    ENV{TENSORRT_ROOT}
-    ENV{TENSORRT_DIR}
-    ENV{TRT_ROOT}
-    CUDAToolkit_ROOT
-    CUDA_TOOLKIT_ROOT_DIR
-    ENV{CUDA_PATH}
-)
-    if(DEFINED ${_var} OR DEFINED ENV{${_var}})
+foreach(_var TENSORRT_ROOT TENSORRT_DIR TRT_ROOT CUDA_PATH)
+    if(DEFINED ENV{${_var}})
+        list(APPEND _TRT_SEARCH_HINTS "$ENV{${_var}}")
+    endif()
+endforeach()
+foreach(_var CUDAToolkit_ROOT CUDA_TOOLKIT_ROOT_DIR)
+    if(DEFINED ${_var})
         list(APPEND _TRT_SEARCH_HINTS "${${_var}}")
     endif()
 endforeach()

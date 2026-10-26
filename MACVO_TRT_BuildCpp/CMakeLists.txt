@@ -16,6 +16,7 @@ if(MSVC)
 endif()
 
 find_package(CLI11 REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 find_package(TensorRT 10 REQUIRED COMPONENTS nvinfer nvonnxparser)
 
 message(STATUS "TensorRT ${TensorRT_VERSION} -> ${TensorRT_INCLUDE_DIR}")
@@ -31,6 +32,7 @@ target_include_directories(macvo_trt_builder INTERFACE
 target_link_libraries(macvo_trt_builder INTERFACE
     TensorRT::nvinfer
     TensorRT::nvonnxparser
+    CUDA::cudart_static
 )
 target_compile_features(macvo_trt_builder INTERFACE cxx_std_20)
 

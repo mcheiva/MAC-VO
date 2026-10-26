@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
     std::string onnx;
     std::string engine;
     std::string mode_str = "fast";
+    std::string timing_cache;
     bool no_weight_streaming = false;
     bool no_tf32 = false;
     bool tf32_explicit = false;
@@ -35,15 +36,20 @@ int main(int argc, char** argv) {
     app.add_option("--height", opts.height, "Input height (px)")->capture_default_str();
     app.add_option("--width",  opts.width,  "Input width (px)")->capture_default_str();
     app.add_option("--opt-level", opts.optimization_level,
-                   "Builder optimization level (1 is the only safe value for this net)")
+                   "Builder optimization level (deployed EIVA engine: 5; verify flow vs PyTorch before changing)")
         ->capture_default_str();
     app.add_flag("--no-weight-streaming", no_weight_streaming,
                  "Disable BuilderFlag::kWEIGHT_STREAMING (default: enabled). "
-                 "Required-on for fast mode to match gold; needed for precise "
-                 "to fit fp32 batch=2 on 8 GB.");
+                 "Needed for precise to fit fp32 batch=2 on 8 GB. Whether it "
+                 "affects fast-mode accuracy is untested.");
     auto* tf32_flag = app.add_flag("--no-tf32", no_tf32,
                                    "Force TF32 off in fp32 matmul kernels "
                                    "(default: off for precise, on for fast).");
+    app.add_option("--timing-cache", timing_cache,
+                   "TensorRT timing cache file: loaded if present, written "
+                   "back after the build. Reuse makes tactic choice "
+                   "repeatable in practice (TensorRT does not guarantee it); "
+                   "verify by diffing TacticName in trtexec --dumpLayerInfo.");
     app.add_flag("--verbose", opts.verbose, "Verbose TRT logs");
 
     CLI11_PARSE(app, argc, argv);
@@ -52,6 +58,7 @@ int main(int argc, char** argv) {
 
     opts.onnx_path = onnx;
     opts.engine_path = engine;
+    opts.timing_cache_path = timing_cache;
     opts.mode = (mode_str == "precise") ? macvo_trt::Mode::Precise
                                         : macvo_trt::Mode::Fast;
     opts.weight_streaming = !no_weight_streaming;
