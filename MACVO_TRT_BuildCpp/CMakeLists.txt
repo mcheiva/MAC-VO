@@ -17,7 +17,8 @@ endif()
 
 find_package(CLI11 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
-find_package(TensorRT 10 REQUIRED COMPONENTS nvinfer nvonnxparser)
+# 10.8+: IBuilderConfig::setTilingOptimizationLevel
+find_package(TensorRT 10.8 REQUIRED COMPONENTS nvinfer nvonnxparser)
 
 message(STATUS "TensorRT ${TensorRT_VERSION} -> ${TensorRT_INCLUDE_DIR}")
 

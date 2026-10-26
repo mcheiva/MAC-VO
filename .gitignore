@@ -74,3 +74,5 @@ runs/*_tum.txt
 runs/trtexec_*
 runs/*.info
 runs/*.mem
+MACVO_TRT_BuildCpp/verify_out/
+MACVO_TRT_BuildCpp/verify_run*.log

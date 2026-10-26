@@ -10,11 +10,24 @@
 //   * Mode::Precise -> FP32 plan, TF32 disabled to match PyTorch's default
 //                      allow_tf32=False matmul behaviour. Batch=1 only.
 //
+// Static batch 1 is the norm: export the ONNX with static shapes (batch 1)
+// and pass no shape flags. When every network input has fully static dims,
+// no optimization profile is created and --min/opt/max-batch, --height and
+// --width are ignored. A profile (min/opt/max, default 1/1/1) is added only
+// if an input is dynamic.
+//
+// Equivalent trtexec command for a static ONNX (no shape flags):
+//   trtexec --onnx=model_b1.onnx --saveEngine=model_b1.plan --stronglyTyped
+//     --allowWeightStreaming --builderOptimizationLevel=5 --avgTiming=8
+//     --profilingVerbosity=detailed --timingCacheFile=timing.cache
+//   (add --errorOnTimingCacheMiss for --error-on-timing-cache-miss)
+//
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 #include <cuda_runtime_api.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -38,27 +51,60 @@ struct BuildOptions {
     std::filesystem::path engine_path;
     Mode mode = Mode::Fast;
 
-    // Optimization profile (NCHW). Defaults match the Python builders.
+    // Optimization profile (NCHW), used only if an ONNX input is dynamic.
+    // Static batch 1 by default; ignored for a fully static ONNX.
     std::int32_t min_batch = 1;
-    std::int32_t opt_batch = 2;
-    std::int32_t max_batch = 2;
+    std::int32_t opt_batch = 1;
+    std::int32_t max_batch = 1;
     std::int32_t channels  = 3;
     std::int32_t height    = 704;
     std::int32_t width     = 704;
 
-    // The deployed EIVA engine (MACVO_TRT commit 9842f44) was built at
-    // level 5 and validated end to end on the VO eval. MAC-VO issue #18
-    // reported corrupted optical-flow values at levels above 1. Verify the
-    // flow against PyTorch before changing the level. The default stays 1.
-    int optimization_level = 1;
+    // The deployed EIVA engine (MACVO_TRT commit 9842f44) and the static
+    // batch-1 engines were built at level 5 and validated end to end on the
+    // VO eval. MAC-VO issue #18 reported corrupted optical-flow values at
+    // higher levels on its build.
+    int optimization_level = 5;
 
-    // Page weights from CPU at runtime. Reduces peak VRAM, allowing fp32
-    // batch=2 to fit on 8 GB GPUs. A ~14% APE regression on plane_nose
-    // without it was once attributed to the flag. UNVERIFIED hypothesis: it
-    // was build-to-build tactic variance (tactic choice changes FP summation
-    // order and so the outputs). Test: build with and without the flag
-    // against one timing cache, then compare flow and APE. A timing cache
-    // only stabilises repeat builds with the same flags. The default stays on.
+    // Number of timing runs averaged per tactic. trtexec's default is 8 and
+    // the API's default is 1. Only affects timing-cache misses; the existing
+    // production tactics were timed at 8.
+    int avg_timing_iterations = 8;
+
+    // Tiling optimization level, 0-3 (kNONE, kFAST, kMODERATE, kFULL).
+    // 0 is TensorRT's default.
+    int tiling_level = 0;
+
+    // Sets BuilderFlag::kERROR_ON_TIMING_CACHE_MISS. In TRT 10.13.2 a miss
+    // does not fail the build: the logger gets one multi-line warning,
+    // "Engine generation failed with backend strategy N. Error message:
+    // ... Adding new entry to timing cache is not allowed if
+    // `BuilderFlag::kERROR_ON_TIMING_CACHE_MISS` is set", and TensorRT falls
+    // back to another strategy and writes a plan. So Build() fails if (a) the
+    // timing cache, serialized right after the build and before the on-disk
+    // merge, is larger than the bytes loaded (TensorRT timed new entries; the
+    // primary signal, needs --timing-cache), or (b) the logger saw a
+    // kERROR / kINTERNAL_ERROR or that cache-miss warning. Use it to
+    // reproduce a plan exactly from a populated timing cache.
+    bool error_on_timing_cache_miss = false;
+
+    // Parse the ONNX, report whether a profile would be added and return
+    // without building.
+    bool parse_only = false;
+
+    // kWEIGHT_STREAMING, measured on the EIVA gaps engine, RTX 4090, TRT
+    // 10.13.2. On the dynamic-axis ONNX (the old graph) it forces the
+    // all-Myelin graph: 942 layers vs 3222, 26.3 vs 38.4 ms per call with a
+    // CUDA graph, 28.4 vs 54.2 ms without. On the static batch-1 ONNX that
+    // Export.py now produces the flag changes nothing: identical tactic
+    // lists, 964 layers, a single stream, the same plan size and
+    // 23.92-23.98 ms either way. Default on, so a dynamic-axis build also
+    // gets the fast graph. At the default (full) budget nothing is streamed
+    // at runtime; the cost is a host copy of the weights at deserialization
+    // (a TensorRT warning). Accuracy: plane_tail1 was 0.036 without the flag
+    // vs 0.026 with it, outside the observed 0.023-0.028 spread but from a
+    // single dive, so weak evidence; the reason for the default is speed on
+    // the dynamic graph.
     bool weight_streaming = true;
 
     // Allow TF32 in fp32 matmul kernels. Default true for fast (no fp32
@@ -97,15 +143,32 @@ public:
     void log(Severity s, char const* msg) noexcept override {
         using S = Severity;
         if (s == S::kINTERNAL_ERROR || s == S::kERROR) {
+            errors_.fetch_add(1);
             std::cerr << "[TRT ERROR] " << msg << '\n';
         } else if (s == S::kWARNING) {
+            // One multi-line message: "Engine generation failed with backend
+            // strategy N. Error message: ... Adding new entry to timing
+            // cache is not allowed if `BuilderFlag::kERROR_ON_TIMING_CACHE_MISS`
+            // is set ...".
+            if (std::strstr(msg, "kERROR_ON_TIMING_CACHE_MISS") != nullptr ||
+                std::strstr(msg, "Adding new entry to timing cache") != nullptr) {
+                strategy_failures_.fetch_add(1);
+            }
             std::cerr << "[TRT WARN ] " << msg << '\n';
         } else if (verbose_) {
             std::cerr << "[TRT INFO ] " << msg << '\n';
         }
     }
+    // kERROR + kINTERNAL_ERROR messages seen so far.
+    int error_count() const noexcept { return errors_.load(); }
+    // Warnings carrying the timing-cache-miss text: what a miss produces
+    // under kERROR_ON_TIMING_CACHE_MISS (the size check in Build() is the
+    // primary signal; this is the secondary one).
+    int strategy_failure_count() const noexcept { return strategy_failures_.load(); }
 private:
     bool verbose_;
+    std::atomic<int> errors_{0};
+    std::atomic<int> strategy_failures_{0};
 };
 
 template <typename T>
@@ -171,17 +234,30 @@ struct CacheReport {
     std::size_t bytes_saved = 0;
 };
 
+// True if every dimension of every network input is fixed (no -1).
+inline bool AllInputsStatic(const nvinfer1::INetworkDefinition& network) {
+    for (int i = 0; i < network.getNbInputs(); ++i) {
+        const nvinfer1::Dims d = network.getInput(i)->getDimensions();
+        for (int k = 0; k < d.nbDims; ++k) {
+            if (d.d[k] < 0) return false;
+        }
+    }
+    return true;
+}
+
 // Writes <engine_path>.json next to the plan: what the plan was built from
 // and with, so a plan can be traced back without guessing.
-inline void WriteSidecar(const BuildOptions& opts, const CacheReport& cache) {
+inline void WriteSidecar(const BuildOptions& opts, const CacheReport& cache,
+                         bool is_static) {
     cudaDeviceProp prop{};
     int dev = 0;
-    std::string gpu_name = "unknown";
-    std::string cc = "unknown";
+    // JSON null when no GPU is visible (the Python builder writes null too).
+    std::string gpu_name = "null";
+    std::string cc = "null";
     if (cudaGetDevice(&dev) == cudaSuccess &&
         cudaGetDeviceProperties(&prop, dev) == cudaSuccess) {
-        gpu_name = prop.name;
-        cc = std::to_string(prop.major) + "." + std::to_string(prop.minor);
+        gpu_name = JsonString(prop.name);
+        cc = JsonString(std::to_string(prop.major) + "." + std::to_string(prop.minor));
     }
 
     std::error_code ec;
@@ -204,12 +280,16 @@ inline void WriteSidecar(const BuildOptions& opts, const CacheReport& cache) {
       << "  \"onnx_fnv1a64\": "
       << (onnx_hash.empty() ? std::string("null") : "\"" + onnx_hash + "\"") << ",\n"
       << "  \"mode\": \"" << (opts.mode == Mode::Fast ? "fast" : "precise") << "\",\n"
-      << "  \"min_batch\": " << opts.min_batch << ",\n"
-      << "  \"opt_batch\": " << opts.opt_batch << ",\n"
-      << "  \"max_batch\": " << opts.max_batch << ",\n"
-      << "  \"height\": " << opts.height << ",\n"
-      << "  \"width\": " << opts.width << ",\n"
+      << "  \"static\": " << (is_static ? "true" : "false") << ",\n"
+      << "  \"min_batch\": " << (is_static ? std::string("null") : std::to_string(opts.min_batch)) << ",\n"
+      << "  \"opt_batch\": " << (is_static ? std::string("null") : std::to_string(opts.opt_batch)) << ",\n"
+      << "  \"max_batch\": " << (is_static ? std::string("null") : std::to_string(opts.max_batch)) << ",\n"
+      << "  \"height\": " << (is_static ? std::string("null") : std::to_string(opts.height)) << ",\n"
+      << "  \"width\": " << (is_static ? std::string("null") : std::to_string(opts.width)) << ",\n"
       << "  \"optimization_level\": " << opts.optimization_level << ",\n"
+      << "  \"avg_timing_iterations\": " << opts.avg_timing_iterations << ",\n"
+      << "  \"tiling_optimization_level\": " << opts.tiling_level << ",\n"
+      << "  \"error_on_timing_cache_miss\": " << (opts.error_on_timing_cache_miss ? "true" : "false") << ",\n"
       << "  \"weight_streaming\": " << (opts.weight_streaming ? "true" : "false") << ",\n"
       << "  \"allow_tf32\": " << (opts.allow_tf32 ? "true" : "false") << ",\n"
       << "  \"timing_cache\": "
@@ -225,8 +305,8 @@ inline void WriteSidecar(const BuildOptions& opts, const CacheReport& cache) {
       << "  \"tensorrt_version\": " << v << ",\n"
       << "  \"tensorrt_version_str\": \"" << trt_str << "\",\n"
       << "  \"tensorrt_build_header\": " << NV_TENSORRT_BUILD << ",\n"
-      << "  \"gpu_name\": " << JsonString(gpu_name) << ",\n"
-      << "  \"compute_capability\": " << JsonString(cc) << "\n"
+      << "  \"gpu_name\": " << gpu_name << ",\n"
+      << "  \"compute_capability\": " << cc << "\n"
       << "}\n";
     if (!j) throw std::runtime_error("Failed to write: " + sidecar.string());
     std::cerr << "Wrote " << sidecar << '\n';
@@ -253,13 +333,13 @@ inline void Build(const BuildOptions& opts) {
     CacheReport cache_report;
 
     // A stale sidecar next to a failed build would describe the wrong plan.
-    {
+    if (!opts.parse_only) {
         std::filesystem::path stale = opts.engine_path;
         stale += ".json";
         std::error_code ec;
         std::filesystem::remove(stale, ec);
     }
-    if (!opts.timing_cache_path.empty()) {
+    if (!opts.parse_only && !opts.timing_cache_path.empty()) {
         const auto parent = opts.timing_cache_path.parent_path();
         if (!parent.empty() && !std::filesystem::is_directory(parent)) {
             throw std::runtime_error("Timing cache directory does not exist: "
@@ -291,17 +371,28 @@ inline void Build(const BuildOptions& opts) {
         throw std::runtime_error("ONNX parse failed: " + opts.onnx_path.string());
     }
 
+    const bool is_static = AllInputsStatic(*network);
+    if (opts.parse_only) {
+        std::cout << "parsed " << opts.onnx_path.string() << ": inputs "
+                  << (is_static ? "all static" : "dynamic")
+                  << ", optimization profile would be "
+                  << (is_static ? "NOT added" : "added") << '\n';
+        return;
+    }
+
     TrtPtr<nvinfer1::IBuilderConfig> config{ builder->createBuilderConfig() };
     if (!config) throw std::runtime_error("createBuilderConfig failed");
     config->setBuilderOptimizationLevel(opts.optimization_level);
+    config->setAvgTimingIterations(opts.avg_timing_iterations);
+    config->setTilingOptimizationLevel(
+        static_cast<nvinfer1::TilingOptimizationLevel>(opts.tiling_level));
+    if (opts.error_on_timing_cache_miss) {
+        config->setFlag(nvinfer1::BuilderFlag::kERROR_ON_TIMING_CACHE_MISS);
+    }
 
     if (opts.weight_streaming) {
-        // Pages weights from CPU at runtime. Reduces peak VRAM (allowing
-        // fp32 batch=2 on 8 GB GPUs that would otherwise OOM). The old claim
-        // that it is needed for trajectory quality is an unverified
-        // hypothesis: it may have been build-to-build tactic variance. Test
-        // by building with and without it against one timing cache, then
-        // comparing flow and APE.
+        // Makes the builder offload every Myelin-supported op to Myelin
+        // (one graph instead of many islands); see BuildOptions.
         config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
     }
 
@@ -351,17 +442,24 @@ inline void Build(const BuildOptions& opts) {
         config->clearFlag(nvinfer1::BuilderFlag::kTF32);
     }
 
-    auto* profile = builder->createOptimizationProfile();
-    if (!profile) throw std::runtime_error("createOptimizationProfile failed");
-    const nvinfer1::Dims4 dmin{ opts.min_batch, opts.channels, opts.height, opts.width };
-    const nvinfer1::Dims4 dopt{ opts.opt_batch, opts.channels, opts.height, opts.width };
-    const nvinfer1::Dims4 dmax{ opts.max_batch, opts.channels, opts.height, opts.width };
-    for (const auto& iname : opts.input_names) {
-        profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kMIN, dmin);
-        profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kOPT, dopt);
-        profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kMAX, dmax);
+    if (is_static) {
+        std::cerr << "ONNX inputs are static: no optimization profile; "
+                     "--min/opt/max-batch, --height and --width are ignored\n";
+    } else {
+        auto* profile = builder->createOptimizationProfile();
+        if (!profile) throw std::runtime_error("createOptimizationProfile failed");
+        const nvinfer1::Dims4 dmin{ opts.min_batch, opts.channels, opts.height, opts.width };
+        const nvinfer1::Dims4 dopt{ opts.opt_batch, opts.channels, opts.height, opts.width };
+        const nvinfer1::Dims4 dmax{ opts.max_batch, opts.channels, opts.height, opts.width };
+        for (const auto& iname : opts.input_names) {
+            profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kMIN, dmin);
+            profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kOPT, dopt);
+            profile->setDimensions(iname.c_str(), nvinfer1::OptProfileSelector::kMAX, dmax);
+        }
+        if (config->addOptimizationProfile(profile) < 0) {
+            throw std::runtime_error("addOptimizationProfile failed (invalid profile)");
+        }
     }
-    config->addOptimizationProfile(profile);
 
     std::cerr << "Building TRT engine (mode="
               << (opts.mode == Mode::Fast ? "fast" : "precise")
@@ -370,6 +468,29 @@ inline void Build(const BuildOptions& opts) {
     TrtPtr<nvinfer1::IHostMemory> plan{
         builder->buildSerializedNetwork(*network, *config) };
     if (!plan) throw std::runtime_error("buildSerializedNetwork returned null");
+    if (opts.error_on_timing_cache_miss && timing_cache) {
+        // Primary signal: the cache as this build leaves it, before the
+        // on-disk merge, is larger than what was loaded, so TensorRT timed
+        // tactics that were not in the cache.
+        TrtPtr<nvinfer1::IHostMemory> own{ timing_cache->serialize() };
+        if (!own) throw std::runtime_error("timing cache serialize failed");
+        if (own->size() > cache_report.bytes_loaded) {
+            throw std::runtime_error(
+                "--error-on-timing-cache-miss: the build's timing cache grew "
+                "from " + std::to_string(cache_report.bytes_loaded) + " to "
+                + std::to_string(own->size()) + " bytes (TensorRT timed new "
+                  "entries); plan not written");
+        }
+    }
+    if (opts.error_on_timing_cache_miss
+        && (logger.error_count() > 0 || logger.strategy_failure_count() > 0)) {
+        throw std::runtime_error(
+            "--error-on-timing-cache-miss: the logger saw "
+            + std::to_string(logger.error_count()) + " error(s) and "
+            + std::to_string(logger.strategy_failure_count())
+            + " timing-cache-miss warning(s) during the build; plan not "
+              "written");
+    }
 
     std::ofstream f(opts.engine_path, std::ios::binary);
     if (!f) throw std::runtime_error("Cannot open output: " + opts.engine_path.string());
@@ -407,7 +528,7 @@ inline void Build(const BuildOptions& opts) {
     }
 
     // Sidecar goes right after the plan, before the cache is touched.
-    WriteSidecar(opts, cache_report);
+    WriteSidecar(opts, cache_report, is_static);
 
     if (cache_blob) {
         std::filesystem::path tmp = opts.timing_cache_path;
