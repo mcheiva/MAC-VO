@@ -2,7 +2,7 @@
 
     python Scripts/Parity/compare.py --torch fp32            # exact rewrite check (gate: EPE max < 1e-3)
     python Scripts/Parity/compare.py --torch fast            # bf16/fp16 eager
-    python Scripts/Parity/compare.py --trt MACVO_FrontendCov.plan [--pairing b2]
+    python Scripts/Parity/compare.py --trt MACVO_FrontendCov.plan [--pairing b2]   # b2: needs --dynamic-batch export
     python Scripts/Parity/compare.py --onnx MACVO_FrontendCov.onnx
     python Scripts/Parity/compare.py --trt Chol.plan --ref runs/ref_chol   # retrained head (make_reference.py --ckpt)
 
@@ -10,7 +10,8 @@ An engine exported with Export.py --cov-layout log-sigma (2 channels) compares a
 reference as is: log_sigma_rho maps both to log sigma per axis; drho then measures only the dropped sigma_uv.
 
 --pairing b2 runs stereo+temporal of a frame as one batch-2 call in the production layout
-(img1=[L_t, L_{t-1}], img2=[R_t, L_t]); kf stays batch-1. Default b1 runs every pair alone.
+(img1=[L_t, L_{t-1}], img2=[R_t, L_t]); kf stays batch-1. Default b1 runs every pair alone. Export.py now writes a
+static batch-1 ONNX, so a b2 run needs an engine from an `Export.py --dynamic-batch` export (built with a batch-2 profile).
 """
 import argparse
 import json
