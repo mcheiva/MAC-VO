@@ -72,3 +72,5 @@ runs/*.log
 runs/*.timing
 runs/*_tum.txt
 runs/trtexec_*
+runs/*.info
+runs/*.mem

@@ -62,7 +62,7 @@ Odometry:
     type: CUDAGraph_FlowFormerCovFrontend
     args:
       device: *device
-      weight: Model/FlowFormerCovEIVAAllWaterV2Neg10-24-00-54-50/15000.pth
+      weight: Model/MACVO_FrontendCov_EIVA_A_HeadOnly.pth
       enc_dtype: fp16
       dec_dtype: bf16
       decoder_depth: 12
