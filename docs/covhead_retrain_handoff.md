@@ -5,6 +5,9 @@
 > Correction (2026-10-25): the statements below that MAC-VO runs are deterministic do not hold for the deployed
 > configuration (CUDA-graph frontend, fp16 / bf16): repeated runs of one model spread by about +-7% in ATE and +-3% in
 > frame-to-frame error on a dive (summary, section 0).
+> Renamed (2026-11-20): solution B's configs `FlowFTEIVA_AllA_water_gaps` and `CovHeadEIVA_AllB_v2neg_gaps_prod` are
+> now `EIVA_RefinedMatcher` and `EIVA_RefinedHead` (same settings); this log keeps the names they had. Reproducing B:
+> `docs/reproduce_solution_B.md`.
 
 Self-contained brief for an agent working on another machine. It describes what to change in
 the covariance head, how to train it on TartanAir with the backbone frozen, how to judge the

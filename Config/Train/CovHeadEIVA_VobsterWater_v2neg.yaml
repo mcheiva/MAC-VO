@@ -26,7 +26,7 @@ Model:
   transformer: "latentcostformer"
   # Fine-tune the recurrent Cholesky head of the first run (FlowFormerCovChol, 25k steps); same recipe as
   # CovHeadCholDeploy plus EIVA underwater data with photogrammetry GT (trained on Vobster, Welland held out).
-  restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
+  restore_ckpt: "Model/MACVO_FrontendCov_Chol25k_base.pth"
 
   # latentcostformer
   latentcostformer:

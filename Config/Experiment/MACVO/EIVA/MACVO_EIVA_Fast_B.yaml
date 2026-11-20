@@ -1,4 +1,4 @@
-# MAC-VO as evaluated in docs/covhead_retrain_summary.md, with solution B: the fine-tuned matcher with its head (FlowFTEIVA_AllA_water_gaps -> CovHeadEIVA_AllB_v2neg_gaps_prod).
+# MAC-VO as evaluated in docs/covhead_retrain_summary.md, with solution B: the fine-tuned matcher with its head (EIVA_RefinedMatcher -> EIVA_RefinedHead).
 # MACVO_Performant's pipeline in the deployed precision (fp16 encoder / bf16 decoder, CUDA-graph frontend) at the
 # shipped settings (min_flow_cov 0.25 px); the three configs differ only in name and frontend weight. The EIVA
 # dives (Config/Sequence/EIVA) are resized to 704x704 by Preprocess_EIVA; TartanAir runs unchanged.

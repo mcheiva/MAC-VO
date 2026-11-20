@@ -1,5 +1,23 @@
+# EIVA_RefinedHead: stage 2 of solution B, the recommended frontend (docs/reproduce_solution_B.md). Retrains the
+# covariance head on top of the refined matcher (EIVA_RefinedMatcher); the result is B
+# (Model/MACVO_FrontendCov_EIVA_B_MatcherHead.pth).
+# The best settings found (docs/covhead_retrain_summary.md):
+#   - start: the refined matcher (restore_ckpt); trained: the covariance head only, the matcher stays frozen
+#   - the deployed precision: fp16 encoder / bf16 decoder, the head in fp32 (cov_fp32); 3-channel Cholesky head; batch 6,
+#     lr 6e-5 one-cycle, 15k steps; temporal and stereo steps alternate (stereo is what trains the disparity sigma)
+#   - negatives: open water (no GT within water_margin 24 px) is pushed above 32 px sigma (water_sigma), so MAC-VO
+#     neither selects nor trusts it
+#   - data: TartanAir v1 + the 7 training seasidetown sequences x10 + the ODD blocks of all six EIVA dives
+#     (EIVA_All_TrainB_v2_gaps): frames the matcher never saw (cross-fitting, so the head learns the matcher's real
+#     errors; trained on the matcher's own frames it is overconfident), with frame gaps and the image gate
+# Run:
+#   python -u -m Train.MatchingNet.train_flowformer --config Config/Train/EIVA_RefinedHead.yaml --training_mode cov
+#   -> Model/EIVARefinedHead<MM-DD-HH-MM-SS>/15000.pth
+# Formerly CovHeadEIVA_AllB_v2neg_gaps_prod (its name in docs/covhead_retrain_handoff.md); the site folds of the same
+# recipe are CovHeadEIVA_WellandBWater_v2_gaps_crossfit and CovHeadEIVA_VobsterBWater_v2neg_gaps_crossfit.
+
 Model:
-  name: "FlowFormerCovEIVAAllBV2NegGapsProd"
+  name: "EIVARefinedHead"
   stage: "tartanair"
   suffix: "sintel"
   gamma: 0.85
@@ -24,9 +42,8 @@ Model:
 
   critical_params: []
   transformer: "latentcostformer"
-  # Production cross-fit: the head with negatives on every EIVA dive's odd blocks, on the matcher FlowFTEIVA_AllA_water_gaps fine-tuned on the even ones; same recipe as
-  # CovHeadCholDeploy plus EIVA underwater data with photogrammetry GT (trained on Welland's odd blocks, the half the cross-fit matcher never saw; Vobster held out).
-  restore_ckpt: "Model/FlowFormerFlowFTAllAWaterGaps10-25-00-36-50/20000.pth"
+  # The refined matcher: B's own matcher stage. After retraining EIVA_RefinedMatcher, point this at its 20000.pth.
+  restore_ckpt: "Model/MACVO_FrontendCov_EIVA_B_MatcherStage.pth"
 
   # latentcostformer
   latentcostformer:

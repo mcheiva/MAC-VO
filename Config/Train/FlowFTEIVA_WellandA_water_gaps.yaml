@@ -29,7 +29,7 @@ Model:
   # EPE 70 px vs 5 px) and the image gate (EIVA v2 GT, Vobster held out) + the seaside oversampling. Open water gets a far stereo target
   # (water_disparity), so MAC-VO's selector skips it; no teacher (it held back the transfer gains), the other pixels
   # without a target stay unsupervised.
-  restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
+  restore_ckpt: "Model/MACVO_FrontendCov_Chol25k_base.pth"
 
   # latentcostformer
   latentcostformer:

@@ -1,0 +1,10 @@
+# TartanAir v1 seasidetown Easy P004, held out from every training (TartanAirV1_Seaside_Holdout). Read from the zips in
+# D:/Datasets/TartanAirV1/seasidetown/Easy; MAC-VO evaluation: Scripts/Eval/run_macvo.sh.
+type: TartanAir_NoIMU
+name: seaside_E004
+args:
+  root: D:/Datasets/TartanAirV1/seasidetown/Easy/P004
+  gtDepth: false
+  gtFlow: false
+  gtPose: true
+  compressed: false

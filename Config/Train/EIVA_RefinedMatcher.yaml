@@ -1,5 +1,22 @@
+# EIVA_RefinedMatcher: stage 1 of solution B, the recommended frontend (docs/reproduce_solution_B.md). Fine-tunes the
+# FlowFormer matcher on EIVA; stage 2, EIVA_RefinedHead, then retrains the covariance head on top of it.
+# The best settings found (docs/covhead_retrain_summary.md):
+#   - start: the 25k recurrent Cholesky base (Model/MACVO_FrontendCov_Chol25k_base.pth; its matcher is the shipped one)
+#   - trained: the matcher's decoder and cost layers (flow_trainable: decoder+cost); the image encoders and the covariance
+#     head stay frozen. fp32, batch 2, lr 2.5e-5 one-cycle, 20k steps; temporal and stereo steps alternate
+#   - data: TartanAir v1 + the 7 training seasidetown sequences x10 + the EVEN blocks (Vobster 100 frames, Welland 300) of
+#     all six EIVA dives (EIVA_All_TrainA_v2_water_gaps, from Scripts/Dataset/make_eiva_lists.py), with frame gaps 1-16
+#     (half one-frame pairs; without them the fine-tune loses large motion: plane_tail1 #331 EPE 70 px vs 5 px), the
+#     image gate (photo_rel 0.75, photo_floor 0.5) and open water as a far stereo target (water_disparity 0.25: without
+#     it the matcher reads unseen water as near and trajectories break); no teacher targets
+# Run (--training_mode flow is required; the default, cov, would train the head instead):
+#   python -u -m Train.MatchingNet.train_flowformer --config Config/Train/EIVA_RefinedMatcher.yaml --training_mode flow
+#   -> Model/EIVARefinedMatcher<MM-DD-HH-MM-SS>/20000.pth (B's own: Model/MACVO_FrontendCov_EIVA_B_MatcherStage.pth)
+# Formerly FlowFTEIVA_AllA_water_gaps (its name in docs/covhead_retrain_handoff.md); the site folds of the same recipe
+# are FlowFTEIVA_WellandA_water_gaps and FlowFTEIVA_VobsterA_water_gaps.
+
 Model:
-  name: "FlowFormerFlowFTAllAWaterGaps"
+  name: "EIVARefinedMatcher"
   stage: "tartanair"
   suffix: "sintel"
   gamma: 0.85
@@ -23,13 +40,8 @@ Model:
 
   critical_params: []
   transformer: "latentcostformer"
-  # Start from the recurrent Cholesky run (FlowFormerCovChol, 25k steps; its matcher is the shipped one). The head
-  # stays frozen in flow mode: retrain it on the fine-tuned matcher afterwards (cross-fit: on Welland's other half).
-  # Welland's even blocks with frame gaps 1-16 (large displacements; the gap-free fine-tune lost them: tail1 frame 331
-  # EPE 70 px vs 5 px) and the image gate (EIVA v2 GT, Vobster held out) + the seaside oversampling. Open water gets a far stereo target
-  # (water_disparity), so MAC-VO's selector skips it; no teacher (it held back the transfer gains), the other pixels
-  # without a target stay unsupervised.
-  restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
+  # The 25k recurrent Cholesky base (CovHeadChol, step 25000; its matcher is the shipped one).
+  restore_ckpt: "Model/MACVO_FrontendCov_Chol25k_base.pth"
 
   # latentcostformer
   latentcostformer:

@@ -43,7 +43,9 @@ Both engines are drop-in: the same inputs, outputs and 2-channel log-sigma layou
 (`Export.py --cov-layout log-sigma`), +3% time (58 ms against 56 ms at batch 2, RTX 4090), parity with PyTorch fp32
 0.010-0.019 px on confident pixels. B is better on Welland and in frame-to-frame accuracy everywhere and has the more
 accurate depth; A is better in Vobster ATE and TartanAir rotation, and is far simpler (no matcher training, no frame
-gaps, no far-water label). **Choosing between them decides how much code the minimal version keeps (section 5).**
+gaps, no far-water label). Both are kept (section 5); **B is the recommended frontend**, A the fallback (for
+very fast turns, or if B misbehaves at a new site). Reproducing B end to end, with reference numbers for every check:
+`docs/reproduce_solution_B.md`.
 
 ## 2. What worked
 
@@ -117,38 +119,45 @@ solution.
 **Data, both solutions.** For each dive with `pose_gt.txt` + `pointcloud_gt.txt`:
 `make_eiva_gt.py` -> `check_eiva_gt.py` -> `check_eiva_photo.py` (writes the gate scores into `index.json`).
 
-**A (head only).** Start from the 25k recurrent Cholesky head (`Model/FlowFormerCovChol10-19-17-52-09/25000.pth`,
+**A (head only).** Start from the 25k recurrent Cholesky head (`Model/MACVO_FrontendCov_Chol25k_base.pth`,
 itself `CovHeadChol` on TartanAir), then `CovHeadEIVA_AllWater_v2neg`: cov mode, deployed precision, 15k steps,
 stereo alternation, TartanAir + seaside + both EIVA sites, `water_sigma: 32`. Export with `--cov-layout log-sigma`.
 
-**B (matcher + head).**
-1. Matcher: `FlowFTEIVA_AllA_water_gaps` (flow mode, decoder + cost, fp32, 20k steps, batch 2) on every dive's even
+**B (matcher + head; configs formerly `FlowFTEIVA_AllA_water_gaps` / `CovHeadEIVA_AllB_v2neg_gaps_prod`).**
+1. Matcher: `EIVA_RefinedMatcher` (flow mode, decoder + cost, fp32, 20k steps, batch 2) on every dive's even
    blocks: far water, frame gaps, image gate, TartanAir + seaside.
-2. Head: `CovHeadEIVA_AllB_v2neg_gaps_prod` (restores step 1's checkpoint) on the odd blocks: negatives, gaps, gate.
+2. Head: `EIVA_RefinedHead` (restores step 1's checkpoint, kept as
+   `Model/MACVO_FrontendCov_EIVA_B_MatcherStage.pth`) on the odd blocks: negatives, gaps, gate.
 3. Release checks: `check_eiva_water.py` on a site the matcher has not seen; TartanAir MAC-VO.
 4. Export with `--cov-layout log-sigma`.
 
-**Commands** (from the repo root; one job per GPU):
+**Commands** (from the repo root; one job per GPU, each started through `Scripts/launch.sh <gpu> <name> <command>`,
+which pins one card and writes the `runs/` records; see `CLAUDE.md`):
 
     # GT for a dive (pose_gt.txt + pointcloud_gt.txt), then its checks
     python -m Scripts.Dataset.make_eiva_gt     --seq D:/Datasets/EIVA/<site>/<dive> --out D:/Datasets/EIVA_GT_v2/<dive>
     python -m Scripts.Dataset.check_eiva_gt    --seq D:/Datasets/EIVA/<site>/<dive> --gt D:/Datasets/EIVA_GT_v2/<dive>
     python -m Scripts.Dataset.check_eiva_photo --seq D:/Datasets/EIVA/<site>/<dive> --gt D:/Datasets/EIVA_GT_v2/<dive>
 
-    # A: the head (restores the 25k base, Model/FlowFormerCovChol10-19-17-52-09/25000.pth = CovHeadChol)
+    # A: the head (restores the 25k base, Model/MACVO_FrontendCov_Chol25k_base.pth = CovHeadChol)
     python -m Train.MatchingNet.train_flowformer --config Config/Train/CovHeadEIVA_AllWater_v2neg.yaml --training_mode cov
-    # B: the matcher, then the head (set restore_ckpt in the head config to the matcher's 20000.pth)
-    python -m Train.MatchingNet.train_flowformer --config Config/Train/FlowFTEIVA_AllA_water_gaps.yaml --training_mode flow
-    python -m Train.MatchingNet.train_flowformer --config Config/Train/CovHeadEIVA_AllB_v2neg_gaps_prod.yaml --training_mode cov
+    # B: the matcher, then the head (set restore_ckpt in the head config to the new matcher's 20000.pth)
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/EIVA_RefinedMatcher.yaml --training_mode flow
+    python -m Train.MatchingNet.train_flowformer --config Config/Train/EIVA_RefinedHead.yaml --training_mode cov
 
     # network level on the held-out seaside pairs (or a fold config's Evaluate split)
     python -m Train.MatchingNet.evaluate --config Config/Train/CovHeadCholWater.yaml --precision fast --pairs 600 --ckpt <ckpt> ...
     # drop-in engine
     python Export.py --mode fast --ckpt <ckpt> --cov-layout log-sigma --onnx <out>.onnx
-    # MAC-VO (shipped / A / B frontends; EIVA dives in Config/Sequence/EIVA, TartanAir as usual)
-    python MACVO.py --odom Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast_A.yaml --data Config/Sequence/EIVA/plane_mid.yaml --noeval
+    # MAC-VO (shipped / A / B frontends: MACVO_EIVA_Fast[_A|_B].yaml) on the EIVA dives and the 8 held-out seaside
+    # sequences, then the tables of section 1 (EIVA: split protocol; TartanAir: ATE / RTE / ROE)
+    Scripts/launch.sh 0 eval_B Scripts/Eval/run_macvo.sh Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast_B.yaml \
+        runs/macvo/B Config/Sequence/EIVA/*.yaml Config/Sequence/TartanAirV1_Seaside/*.yaml
+    python -m Scripts.Eval.eiva_table runs/macvo/shipped runs/macvo/A runs/macvo/B
+    python -m Scripts.Eval.tartanair_table runs/macvo/shipped runs/macvo/A runs/macvo/B
+    # one dive by hand (the split protocol)
     python -m Scripts.Dataset.eval_eiva_trajectory --seq D:/Datasets/EIVA/vobster_quay/plane_mid \
-        --gt D:/Datasets/EIVA_GT_v2/plane_mid --poses <run>/poses.npy [...]       # the split protocol
+        --gt D:/Datasets/EIVA_GT_v2/plane_mid --poses <run>/poses.npy [...]
 
 The site folds of each recipe are the same commands with the fold configs (A: `CovHeadEIVA_WellandWater_v2neg`,
 `CovHeadEIVA_VobsterWater_v2neg`; B: `FlowFTEIVA_WellandA_water_gaps` -> `CovHeadEIVA_WellandBWater_v2_gaps_crossfit`,
@@ -181,8 +190,8 @@ encoder / decoder dtypes, `flow_trainable`, `water_sigma`, the dataset / DataPar
 
 **Export and checks**: `Export.py --cov-layout log-sigma`, `Scripts/Parity/*`, `Scripts/AdHoc/StereoTailAnalysis.py`.
 
-**Configs**: A (`CovHeadEIVA_AllWater_v2neg` + 2 folds), B (`FlowFTEIVA_AllA_water_gaps`,
-`CovHeadEIVA_AllB_v2neg_gaps_prod` + 2 folds of each), the 25k base (`CovHeadChol`), the seaside evaluation split
+**Configs**: A (`CovHeadEIVA_AllWater_v2neg` + 2 folds), B (`EIVA_RefinedMatcher`,
+`EIVA_RefinedHead` + 2 folds of each), the 25k base (`CovHeadChol`), the seaside evaluation split
 (`CovHeadCholWater`), the 15 sequence lists they include; MAC-VO: `Config/Experiment/MACVO/EIVA/MACVO_EIVA_Fast[_A|_B]`,
 `Config/Experiment/Common/Preprocess_EIVA.yaml`, `Config/Sequence/EIVA/*` (the six dives).
 

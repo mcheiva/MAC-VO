@@ -18,7 +18,7 @@ Model:
   critical_params: []
   transformer: "latentcostformer"
   # Fine-tune the recurrent Cholesky head of the first run (FlowFormerCovChol, 25k steps).
-  restore_ckpt: "Model/FlowFormerCovChol10-19-17-52-09/25000.pth"
+  restore_ckpt: "Model/MACVO_FrontendCov_Chol25k_base.pth"
 
   # latentcostformer
   latentcostformer:
